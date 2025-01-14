@@ -1,6 +1,6 @@
 import numpy as np
 
-#This file traines a fully connected Nural Network
+#This file traines a fully connected Neural Network
 
 class Network:
     def __init__(self, sizes):
