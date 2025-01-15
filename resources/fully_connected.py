@@ -54,15 +54,36 @@ class Network:
             layer.weights_gradient = np.dot(prev_activation.T, delta)
             layer.biases_gradient = np.sum(delta, axis=0, keepdims=True)
     
-    def update_parameters(self, learning_rate=0.01):
+    def update_parameters(self, learning_rate):
         """Updates the parameters acording to the gradient
            - learning_rate: the impact of the update (if the gradient is a vector then the learning_rate is a scalar that makes the gradient smaller)
         """
         for layer in self.layers:
-            layer.weights -= weights_gradient*learning_rate
-            layer.biases_gradient -= biases_gradient*learning_rate
+            layer.weights -= layer.weights_gradient*learning_rate
+            layer.biases -= layer.biases_gradient*learning_rate
             
-        
+    def stochastic_gradient_descent(self, dataset, targets, learning_rate=0.01, batch_size=32, epocs=30):
+        """Trains the neural network
+           - dataset: the training data
+           - targets: the desired outcome for each data unit in the data set
+           - learning_rate: the pace the network is allowed to change
+           - batch_size: the amount of data units in each batch of data
+           - epocs: the amount of times the dataset is used
+        """
+        for epoc in range(epocs):
+            total_loss = 0
+            #  shuffle data
+            permutation = np.random.permutation(len(dataset))
+            dataset[:] = dataset[permutation]
+            targets[:] = targets[permutation]
+            for i in range(0, len(dataset), batch_size):
+                dataset_batch = dataset[i:i+batch_size]
+                targets_batch = targets[i:i+batch_size]
+                self.backpropagate(dataset_batch, targets_batch)
+                self.update_parameters(learning_rate)
+                total_loss += self.loss_function(self.layers[-1].last_activation, targets_batch)
+            print(f"Epoc {epoc + 1}. total loss is: {total_loss}")
+                
     
         
         
@@ -75,7 +96,7 @@ class Layer:
            - The weights matrix is initialized using Xavier initialization.
         """
         self.weights = Layer.xavier_initialization(prev_layer_size, size)
-        self.biases = np.zeros(1,size)
+        self.biases = np.zeros((1,size))
         self.last_activation = None
         
         self.weights_gradient = None
