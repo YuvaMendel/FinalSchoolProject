@@ -28,6 +28,10 @@ class Network:
         return input_data
         
     def backpropagate(self, input_data, target):
+        """Finds the gradient.
+           - input_data: The input to the neural network.
+           - target: The desired output
+        """
         # Forward pass to compute output
         output = self.forward(input_data)
         
@@ -49,6 +53,16 @@ class Network:
             prev_activation = self.layers[i - 1].last_activation if i > 0 else input_data
             layer.weights_gradient = np.dot(prev_activation.T, delta)
             layer.biases_gradient = np.sum(delta, axis=0, keepdims=True)
+    
+    def update_parameters(self, learning_rate=0.01):
+        """Updates the parameters acording to the gradient
+           - learning_rate: the impact of the update (if the gradient is a vector then the learning_rate is a scalar that makes the gradient smaller)
+        """
+        for layer in self.layers:
+            layer.weights -= weights_gradient*learning_rate
+            layer.biases_gradient -= biases_gradient*learning_rate
+            
+        
     
         
         
