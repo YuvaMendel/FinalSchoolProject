@@ -1,15 +1,16 @@
 import numpy as np
-
-#This file traines a fully connected Neural Network
+__auther__ = "Yuval Mendel"
+#This code traines a fully connected Neural Network
 
 class Network:
-    def __init__(self, sizes):
+    def __init__(self, sizes, activation_function=sigmoid, loss_function=mse_loss):
         """Initializes the network.
            - sizes: A list that contains the number of neurons in each layer.
         """
         self.layers = []
+        self.loss_function = loss
         for i in range(1,len(sizes)):
-            self.layers.append(Layer(sizes[i], sizes[i-1]))
+            self.layers.append(Layer(sizes[i], sizes[i-1], activation=self.activation))
     
     def forward(self, input_data):
         """Passes the data through the network layers.
@@ -18,6 +19,9 @@ class Network:
         for layer in self.layers:
             input_data = layer.forward(input_data)
         return input_data
+    
+        
+    
         
         
         
@@ -53,5 +57,8 @@ class Layer:
         weights = np.random.uniform(-limit, limit, (n_in, n_out))
         return weights
 
-def sigmoid(vector):
-    return 1 / (1 + np.exp(-vector))
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def mse_loss(predicted, target):
+        return np.mean((target - precicted)**2)
