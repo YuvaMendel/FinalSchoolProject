@@ -71,7 +71,9 @@ class Network:
            - epocs: the amount of times the dataset is used
         """
         for epoc in range(epocs):
-            total_loss = 0
+            total_accuracy = 0
+            total_batches = 0
+
             #  shuffle data
             permutation = np.random.permutation(len(dataset))
             dataset[:] = dataset[permutation]
@@ -81,8 +83,17 @@ class Network:
                 targets_batch = targets[i:i+batch_size]
                 self.backpropagate(dataset_batch, targets_batch)
                 self.update_parameters(learning_rate)
-                total_loss += self.loss_function(self.layers[-1].last_activation, targets_batch)
-            print(f"Epoc {epoc + 1}. total loss is: {total_loss}")
+                
+                # Compute accuracy for the current batch
+                predictions = self.forward(dataset_batch)
+                predicted_labels = np.argmax(predictions, axis=1)
+                actual_labels = np.argmax(targets_batch, axis=1)
+                accuracy = np.mean(predicted_labels == actual_labels)
+
+                total_accuracy += accuracy
+                total_batches += 1
+            avg_accuracy = total_accuracy / total_batches
+            print(f"Epoch {epoc + 1}/{epocs}. Average accuracy: {avg_accuracy * 100:.2f}%")
                 
     
         
@@ -135,11 +146,28 @@ def mse_loss(predicted, target):
 
 def mse_loss_derivative(predicted, target):
     return 2 * (predicted - target) / target.size
+    
+def relu(z):
+    return np.maximum(0, z)
 
-activation_functions = {
-    'sigmoid':(sigmoid, sigmoid_derivative)
-}
+def relu_derivative(z):
+    return (z > 0).astype(float)
+
+
+
+def categorical_crossentropy(predicted, target):
+    
+    return -np.sum(target * np.log(predicted + 1e-8)) / target.shape[0]
+
+def categorical_crossentropy_derivative(predicted, target):
+    return predicted - target
 
 loss_functions = {
-    'mse_loss':(mse_loss, mse_loss_derivative)
+    'mse_loss':(mse_loss, mse_loss_derivative),
+    'categorical_crossentropy':(categorical_crossentropy, categorical_crossentropy_derivative)
+}
+
+activation_functions = {
+    'sigmoid':(sigmoid, sigmoid_derivative),
+    'relu':(relu, relu_derivative)
 }
