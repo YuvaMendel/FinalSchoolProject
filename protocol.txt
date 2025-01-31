@@ -1,1 +1,19 @@
 **THIS FILE CONTAINS THE DESCRIPTION OF THE PROTOCOL**
+Purpose: make requests from a to analyze some data (in this case send an input to the server).
+-encrypted comunication (useing RSA for key exchange and AES to encrypt the data)
+-synchronous
+**TEXT BASED PROTOCOL**
+**USES TCP**
+**EVERY MESSAGE WILL HAVE A LENGTH FEILD IN THE BEGINING (NOT ENCRYPTED) THE LENGTH FEILD IS 12 BYTES LONG (IN ORDER TO ENSURE THAT MULTIPLE (IN CASE THE SERVICE CHANGES) LARGE IMAGES CAN BE SENT)**
+
+HANDSHAKE: (happens in the begining of the comunication)
+server -> client: This is my public rsa key, and this is the service I provide
+client -> server: This is the communication key encrypted with your public rsa key - ready to start (or just a ending the connection with a reject message)
+server -> client: ready to start
+---both sides have the kay and can  encrypt their messages - the conversation can start---
+services (examples):
+"Digit recognition"
+
+**CLIENT SEND FIRST MESSAGE AFTER HANDSHAKE**
+
+CLIENT MESSAGES:
