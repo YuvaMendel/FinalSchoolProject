@@ -3,8 +3,8 @@ from tkinter import filedialog, messagebox
 from client import Client
 
 class ClientGUI:
-    def __init__(self, root, client):
-        self.root = root
+    def __init__(self, client):
+        self.root = tk.Tk()
         self.root.title("Client GUI")
         self.root.geometry("400x300")
         self.client = client
@@ -79,8 +79,9 @@ class ClientGUI:
     
     def display_result(self, message):
         messagebox.showinfo("Server Response", message)
+    def activate(self):
+        self.root.mainloop()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = ClientGUI(root, None)
-    root.mainloop()
+    app = ClientGUI(None)
+    app.activate()
