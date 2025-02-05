@@ -2,6 +2,7 @@ import socket
 import threading
 class Server:
     def __init__(self):
+        
         self.online = False
         self.sock = socket.socket()
         self.sock.bind(("127.0.0.1", 6627))
@@ -15,9 +16,13 @@ class Server:
             self.clients.append(handler)
             handler.start()
             
-class ClientHandler(threading):
-# need to finish this class
+class ClientHandler(threading.Thread):
     def __init__(self, soc):
+        super().__init__()
         self.soc = soc
+    def start(self):
+        self.business_logic()
+    def business_logic(self):
+        pass
             
         
