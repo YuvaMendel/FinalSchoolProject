@@ -1,5 +1,6 @@
 import socket
 import threading
+from time import sleep
 class Server:
     def __init__(self):
         
@@ -23,6 +24,7 @@ class ClientHandler(threading.Thread):
     def start(self):
         self.business_logic()
     def business_logic(self):
-        pass
+        sleep(20)
+        
             
         

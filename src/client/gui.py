@@ -38,8 +38,8 @@ class ClientGUI:
         self.connected_img = Image.open("static/connected.png")  # Replace with your image path
         
         # Resize images if necessary (optional)
-        self.no_internet_img = self.no_internet_img.resize((30, 30))  # Resize to fit in label
-        self.connected_img = self.connected_img.resize((30, 30))  # Resize to fit in label
+        self.no_internet_img.thumbnail((30, 30))
+        self.connected_img.thumbnail((30, 30))
         
         # Convert the images to Tkinter-compatible format
         self.no_internet_img = ImageTk.PhotoImage(self.no_internet_img)
