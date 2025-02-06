@@ -5,13 +5,17 @@ class Client(threading.Thread):
     def __init__(self, dest_ip, dest_port):
         super().__init__()
         self.dest = (dest_ip, dest_port)
-        self.sock = None
+        self.sock = socket.socket()
         self.request_queue = queue.Queue()
+        self.connected = False
     
     def connect(self):
-        self.sock = socket.socket()
-        self.sock.connect(self.dest)
-        print("connected")
+        try:
+            self.sock.connect(self.dest)
+            self.connected = True
+        except socket.error as e:
+            self.connected = False
+            
     def run(self):
         self.connect()
         self.handshake()
@@ -22,3 +26,7 @@ class Client(threading.Thread):
         pass
     def send_file(self, file_path):
         pass
+    def is_connected(self):
+        return self.connected
+    def close(self):
+        self.sock.close()

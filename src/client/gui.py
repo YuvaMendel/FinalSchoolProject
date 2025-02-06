@@ -1,24 +1,65 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from client import Client
+from PIL import Image, ImageTk
 
 class ClientGUI:
+    
     def __init__(self, client):
         self.root = tk.Tk()
         self.root.title("Client GUI")
         self.root.geometry("400x300")
         self.client = client
+        self.connection_label = None  # To store the label
+        self.no_internet_img = None  # To store the "No Internet" image
+        self.connected_img = None  # To store the "Connected" image
+        self.load_images()  # Load the images when initializing
         self.create_main_screen()
     
     def create_main_screen(self):
+        # Clear existing widgets
         for widget in self.root.winfo_children():
             widget.destroy()
         
+        # Check if the client is connected and display the appropriate label
+        self.update_connection_status()
+        
+        # Create the main menu
         tk.Label(self.root, text="Main Menu", font=("Arial", 16)).pack(pady=20)
         
         tk.Button(self.root, text="Upload Image", command=self.open_upload_screen, width=20).pack(pady=5)
         tk.Button(self.root, text="View History", command=self.open_history_screen, width=20).pack(pady=5)
-        tk.Button(self.root, text="Exit", command=self.root.quit, width=20).pack(pady=5)
+        tk.Button(self.root, text="Exit", command=self.exit_gui, width=20).pack(pady=5)
+        
+        
+    def load_images(self):
+        # Load images for "No Internet" and "Connected"
+        self.no_internet_img = Image.open("static/no_connection.png")  # Replace with your image path
+        self.connected_img = Image.open("static/connected.png")  # Replace with your image path
+        
+        # Resize images if necessary (optional)
+        self.no_internet_img = self.no_internet_img.resize((30, 30))  # Resize to fit in label
+        self.connected_img = self.connected_img.resize((30, 30))  # Resize to fit in label
+        
+        # Convert the images to Tkinter-compatible format
+        self.no_internet_img = ImageTk.PhotoImage(self.no_internet_img)
+        self.connected_img = ImageTk.PhotoImage(self.connected_img)
+    def update_connection_status(self):
+        if self.connection_label:
+            self.connection_label.destroy()
+        
+        if not self.client.is_connected():
+            # Display the "No Internet" image
+            self.connection_label = tk.Label(self.root, image=self.no_internet_img)
+            self.connection_label.place(x=5, y=5)  # Top-left corner (5 pixels from the top-left)
+        else:
+            # Display the "Connected" image
+            self.connection_label = tk.Label(self.root, image=self.connected_img)
+            self.connection_label.place(x=5, y=5)
+    def exit_gui(self):
+        self.client.close()
+        self.root.quit()
+    
     
     def open_upload_screen(self):
         for widget in self.root.winfo_children():
