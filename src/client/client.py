@@ -1,6 +1,10 @@
 import socket
 import threading
 import queue
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+import os
+
 class Client(threading.Thread):
     def __init__(self, dest_ip, dest_port):
         super().__init__()
@@ -38,3 +42,12 @@ class Client(threading.Thread):
         self.connected = False
         self.request_queue.put(None)
         self.sock.close()
+
+
+class ClientCrypto:
+    BLOCK_SIZE = 32
+    def __init__(self):
+        AES.block_size = self.BLOCK_SIZE
+        self.aes_key = os.urandom(AES.block_size)
+        self.iv = os.urandom(AES.block_size)
+        self.public_rsa_key = None
