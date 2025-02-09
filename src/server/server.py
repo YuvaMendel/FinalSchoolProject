@@ -24,7 +24,7 @@ class ClientHandler(threading.Thread):
     def start(self):
         self.business_logic()
     def business_logic(self):
-        sleep(20)
+        pass
         
             
         
