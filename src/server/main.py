@@ -1,2 +1,3 @@
 import server
-serv = server()
+serv = server.Server()
+serv.activate_server()
