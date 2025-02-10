@@ -1,9 +1,19 @@
 import socket
+
+import base64
+
 import threading
 import queue
+
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+import app.protocol as protocol
 
 class Client(threading.Thread):
     def __init__(self, dest_ip, dest_port):
@@ -12,6 +22,7 @@ class Client(threading.Thread):
         self.sock = socket.socket()
         self.request_queue = queue.Queue()
         self.connected = False
+        self.crypto = ClientCrypto()
     
     def connect(self):
         try:
@@ -24,8 +35,20 @@ class Client(threading.Thread):
         self.connect()
         self.handshake()
         self.activate()
+    def recv_with_size(self):
+        return protocol.recv_by_size(self.sock)
+        
+    def send_with_size(self, msg):
+        protocol.send_by_size(self.sock, msg)
+        
     def handshake(self):
-        pass
+        rsa_public = self.recv_with_size()
+        encrypted_aes_key, encrypted_aes_iv = self.crypto.encrypted_key(rsa_public)
+        self.send_with_size(base64.b64encode(encrypted_aes_key))
+        self.send_with_size(base64.b64encode(encrypted_aes_iv))
+        return_message = self.recv_with_size()
+        print(return_message)
+        
     def activate(self):
         while self.connected:
             task = self.request_queue.get()
@@ -49,5 +72,10 @@ class ClientCrypto:
     def __init__(self):
         AES.block_size = self.BLOCK_SIZE
         self.aes_key = os.urandom(AES.block_size)
-        self.iv = os.urandom(AES.block_size)
-        self.public_rsa_key = None
+        self.aes_iv = os.urandom(AES.block_size)
+    def encrypted_key(self, rsa_key):
+        rsa_key = RSA.import_key(rsa_key)
+        cipher_rsa = PKCS1_OAEP.new(rsa_key)
+        encrypted_aes_key = cipher_rsa.encrypt(self.aes_key)
+        encrypted_aes_iv = cipher_rsa.encrypt(self.aes_iv)
+        return encrypted_aes_key, encrypted_aes_iv
