@@ -32,7 +32,7 @@ class Server:
                 handler = ClientHandler(s, self.rsa_key)
                 self.clients.append(handler)
                 handler.start()
-            except socket.error() as e:
+            except socket.error as e:
                 print(f"Socket error: {e}")
                 
                 
@@ -82,7 +82,7 @@ class ServerCrypto:
     def decrypt_aes_key(self, aes_key, aes_iv):
         decipher_rsa = PKCS1_OAEP.new(self.rsa_key)
         self.aes_key = decipher_rsa.decrypt(aes_key)
-        self.aes_iv = decipher_rsa.decrypt(aes_iv)
+        self.aes_iv = aes_iv
         print(self.aes_iv)
     def encrypt(self, plaintext):
         

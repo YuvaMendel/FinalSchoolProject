@@ -43,9 +43,9 @@ class Client(threading.Thread):
         
     def handshake(self):
         rsa_public = self.recv_with_size()
-        encrypted_aes_key, encrypted_aes_iv = self.crypto.encrypted_key(rsa_public)
+        encrypted_aes_key, aes_iv = self.crypto.encrypted_key_iv(rsa_public)
         self.send_with_size(base64.b64encode(encrypted_aes_key))
-        self.send_with_size(base64.b64encode(encrypted_aes_iv))
+        self.send_with_size(base64.b64encode(aes_iv))
         return_message = self.recv()
         print(return_message[0])
         
@@ -82,12 +82,12 @@ class ClientCrypto:
     def __init__(self):
         self.aes_key = os.urandom(32)
         self.aes_iv = os.urandom(16)
-    def encrypted_key(self, rsa_key):
+    def encrypted_key_iv(self, rsa_key):
         rsa_key = RSA.import_key(rsa_key)
         cipher_rsa = PKCS1_OAEP.new(rsa_key)
         encrypted_aes_key = cipher_rsa.encrypt(self.aes_key)
-        encrypted_aes_iv = cipher_rsa.encrypt(self.aes_iv)
-        return encrypted_aes_key, encrypted_aes_iv
+        aes_iv = self.aes_iv
+        return encrypted_aes_key, aes_iv
     
     def encrypt(self, plaintext):
 
