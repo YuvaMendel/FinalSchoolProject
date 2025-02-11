@@ -54,11 +54,17 @@ class ClientHandler(threading.Thread):
     def handshake(self):
         self.send_with_size(self.crypto.get_public())
         self.crypto.decrypt_aes_key(base64.b64decode(self.recv_with_size()), base64.b64decode(self.recv_with_size())) # Get aes key and aes iv (for cbc) and give them to crypto object)
-        self.send_with_size(protocol.ACK_START)
-    def send(self):
-        pass
+        self.send(protocol.ACK_START)
+    def send(self, *msg):
+        msg = self.format_message(msg)
+        self.send_with_size(self.crypto.encrypt(msg))
     def recv(self):
-        pass
+        return self.unformat_message(self.recv_with_size())
+        
+    def format_message(self, args):
+        return b"".join(args)
+    def unformat_message(self, msg):
+        return [msg]
         
     def business_logic(self):
         pass
@@ -77,3 +83,25 @@ class ServerCrypto:
         decipher_rsa = PKCS1_OAEP.new(self.rsa_key)
         self.aes_key = decipher_rsa.decrypt(aes_key)
         self.aes_iv = decipher_rsa.decrypt(aes_iv)
+        print(self.aes_iv)
+    def encrypt(self, plaintext):
+        
+        if not self.aes_key or not self.aes_iv:
+            raise ValueError("AES key and IV must be set before encryption.")
+
+        cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
+        padded_data = pad(plaintext, AES.block_size)
+        ciphertext = cipher.encrypt(padded_data)
+
+        return ciphertext
+
+    def decrypt(self, encrypted_text):
+        if not self.aes_key or not self.aes_iv:
+            raise ValueError("AES key and IV must be set before decryption.")
+
+        cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
+        decrypted_padded = cipher.decrypt(encrypted_text)
+        plaintext = unpad(decrypted_padded, AES.block_size)
+
+        return plaintext.decode()
+

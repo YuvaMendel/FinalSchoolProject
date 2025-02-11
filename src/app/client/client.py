@@ -46,8 +46,8 @@ class Client(threading.Thread):
         encrypted_aes_key, encrypted_aes_iv = self.crypto.encrypted_key(rsa_public)
         self.send_with_size(base64.b64encode(encrypted_aes_key))
         self.send_with_size(base64.b64encode(encrypted_aes_iv))
-        return_message = self.recv_with_size()
-        print(return_message)
+        return_message = self.recv()
+        print(return_message[0])
         
     def activate(self):
         while self.connected:
@@ -65,17 +65,42 @@ class Client(threading.Thread):
         self.connected = False
         self.request_queue.put(None)
         self.sock.close()
+    
+    def send(self, *msg):
+        msg = self.format_message(msg)
+        self.send_with_size(self.crypto.encrypt(msg))
+    def recv(self):
+        return self.unformat_message(self.crypto.decrypt(self.recv_with_size()))
+        
+    def format_message(self, args):
+        return "".args
+    def unformat_message(self, msg):
+        return [msg]
 
 
 class ClientCrypto:
-    BLOCK_SIZE = 32
     def __init__(self):
-        AES.block_size = self.BLOCK_SIZE
-        self.aes_key = os.urandom(AES.block_size)
-        self.aes_iv = os.urandom(AES.block_size)
+        self.aes_key = os.urandom(32)
+        self.aes_iv = os.urandom(16)
     def encrypted_key(self, rsa_key):
         rsa_key = RSA.import_key(rsa_key)
         cipher_rsa = PKCS1_OAEP.new(rsa_key)
         encrypted_aes_key = cipher_rsa.encrypt(self.aes_key)
         encrypted_aes_iv = cipher_rsa.encrypt(self.aes_iv)
         return encrypted_aes_key, encrypted_aes_iv
+    
+    def encrypt(self, plaintext):
+
+        cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
+        padded_data = pad(plaintext.encode(), AES.block_size)
+        ciphertext = cipher.encrypt(padded_data)
+
+        return ciphertext
+
+    def decrypt(self, encrypted_text):
+
+        cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
+        decrypted_padded = cipher.decrypt(encrypted_text)
+        plaintext = unpad(decrypted_padded, AES.block_size)
+
+        return plaintext.decode()
