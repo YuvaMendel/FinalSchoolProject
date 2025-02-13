@@ -14,6 +14,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 import app.protocol as protocol
 
+__auther__ = 'Yuval Mendel'
 
 class Server:
     def __init__(self):
