@@ -1,6 +1,6 @@
 import socket
 
-import base64
+
 
 import threading
 import queue
@@ -29,6 +29,7 @@ class Client(threading.Thread):
             self.sock.connect(self.dest)
             self.connected = True
         except socket.error as e:
+            print(e)
             self.connected = False
             
     def run(self):
@@ -44,8 +45,8 @@ class Client(threading.Thread):
     def handshake(self):
         rsa_public = self.recv_with_size()
         encrypted_aes_key, aes_iv = self.crypto.encrypted_key_iv(rsa_public)
-        self.send_with_size(base64.b64encode(encrypted_aes_key))
-        self.send_with_size(base64.b64encode(aes_iv))
+        self.send_with_size(encrypted_aes_key)
+        self.send_with_size(aes_iv)
         return_message = self.recv()
         print(return_message[0])
         
@@ -58,8 +59,10 @@ class Client(threading.Thread):
             
     def send_file(self, file_path):
         pass
+        
     def is_connected(self):
         return self.connected
+        
     def close(self):
         
         self.connected = False
@@ -73,7 +76,8 @@ class Client(threading.Thread):
         return self.unformat_message(self.crypto.decrypt(self.recv_with_size()))
         
     def format_message(self, args):
-        return "".args
+        return b"".join(args)
+        
     def unformat_message(self, msg):
         return [msg]
 
@@ -82,6 +86,7 @@ class ClientCrypto:
     def __init__(self):
         self.aes_key = os.urandom(32)
         self.aes_iv = os.urandom(16)
+        
     def encrypted_key_iv(self, rsa_key):
         rsa_key = RSA.import_key(rsa_key)
         cipher_rsa = PKCS1_OAEP.new(rsa_key)
@@ -90,7 +95,6 @@ class ClientCrypto:
         return encrypted_aes_key, aes_iv
     
     def encrypt(self, plaintext):
-
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
         padded_data = pad(plaintext.encode(), AES.block_size)
         ciphertext = cipher.encrypt(padded_data)

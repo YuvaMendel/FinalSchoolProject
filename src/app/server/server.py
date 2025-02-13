@@ -1,6 +1,5 @@
 import socket
 
-import base64
 
 import threading
 
@@ -29,7 +28,7 @@ class Server:
         self.online = True
         while self.online:
             try:
-                s, a = self.sock.accept()
+                s, _ = self.sock.accept()
                 handler = ClientHandler(s, self.rsa_key)
                 self.clients.append(handler)
                 handler.start()
@@ -54,7 +53,7 @@ class ClientHandler(threading.Thread):
     
     def handshake(self):
         self.send_with_size(self.crypto.get_public())
-        self.crypto.decrypt_aes_key(base64.b64decode(self.recv_with_size()), base64.b64decode(self.recv_with_size())) # Get aes key and aes iv (for cbc) and give them to crypto object)
+        self.crypto.decrypt_aes_key(self.recv_with_size(), self.recv_with_size()) # Get aes key and aes iv (for cbc) and give them to crypto object)
         self.send(protocol.ACK_START)
     def send(self, *msg):
         msg = self.format_message(msg)
@@ -84,7 +83,6 @@ class ServerCrypto:
         decipher_rsa = PKCS1_OAEP.new(self.rsa_key)
         self.aes_key = decipher_rsa.decrypt(aes_key)
         self.aes_iv = aes_iv
-        print(self.aes_iv)
     def encrypt(self, plaintext):
         
         if not self.aes_key or not self.aes_iv:
@@ -105,4 +103,3 @@ class ServerCrypto:
         plaintext = unpad(decrypted_padded, AES.block_size)
 
         return plaintext.decode()
-
