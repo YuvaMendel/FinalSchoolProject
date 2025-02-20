@@ -50,14 +50,24 @@ class Client(threading.Thread):
         return_message = self.recv()
         print(return_message[0])
         
+        
+    def queue_task(self, task_code ,*args):
+        self.request_queue.put(task_code, args)
+        
     def activate(self):
         while self.connected:
             task = self.request_queue.get()
             if task is None:
                 break
-                
+            task_code, task = task
             
-    def send_file(self, file_path):
+                  
+            
+    def send_file(self, file_path): #queues a send message task
+        self.queue_task(protocol.REQUEST_IMAGE, file_path)
+    
+    def handle_task(self, task_code, task):
+        print('send')
         pass
         
     def is_connected(self):
