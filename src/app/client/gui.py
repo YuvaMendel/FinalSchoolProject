@@ -83,7 +83,7 @@ class ClientGUI:
     def send_image(self):
         if hasattr(self, 'file_path') and self.file_path:
             messagebox.showinfo("Success", "Image sent successfully!")
-            #self.client.send_file(self.file_path)
+            self.client.send_file(self.file_path)
         else:
             messagebox.showerror("Error", "No file selected!")
     

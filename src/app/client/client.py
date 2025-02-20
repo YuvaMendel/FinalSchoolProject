@@ -60,6 +60,7 @@ class Client(threading.Thread):
             if task is None:
                 break
             task_code, task = task
+            self.handle_task(task_code, task)
             
                   
             
