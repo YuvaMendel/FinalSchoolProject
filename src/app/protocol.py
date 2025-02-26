@@ -5,6 +5,7 @@ SIZE_OF_SIZE = 12   # Size of the size feild in the beginning of the message
 #Message Codes (OPCODES)
 ACK_START = b'GKSC' # server got key from client and is ready to start communication
 REQUEST_IMAGE = b'RIPP'
+IMAGE_IDENTIFIED = b'RIPR'
 
 
 

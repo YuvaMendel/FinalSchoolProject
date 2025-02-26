@@ -1,19 +1,15 @@
 import socket
-
-
-
 import threading
 import queue
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+import app.protocol as protocol
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-import app.protocol as protocol
 
 class Client(threading.Thread):
     def __init__(self, dest_ip, dest_port):
@@ -36,6 +32,7 @@ class Client(threading.Thread):
         self.connect()
         self.handshake()
         self.activate()
+
     def recv_with_size(self):
         return protocol.recv_by_size(self.sock)
         
@@ -49,27 +46,28 @@ class Client(threading.Thread):
         self.send_with_size(aes_iv)
         return_message = self.recv()
         print(return_message[0])
-        
-        
+
     def queue_task(self, task_code ,*args):
-        self.request_queue.put(task_code, args)
+        self.request_queue.put((task_code, args))
         
     def activate(self):
         while self.connected:
             task = self.request_queue.get()
             if task is None:
                 break
-            task_code, task = task
-            self.handle_task(task_code, task)
-            
-                  
-            
-    def send_file(self, file_path): #queues a send message task
-        self.queue_task(protocol.REQUEST_IMAGE, file_path)
-    
-    def handle_task(self, task_code, task):
-        print('send')
-        pass
+            task_code, args = task
+            self.handle_task(task_code, args)
+            response = self.recv()
+            self.business_logic(response)
+
+    def business_logic(self, response):
+        print(response)
+
+    def send_file(self, file_path):
+        self.queue_task(protocol.REQUEST_IMAGE, file_path.encode())
+
+    def handle_task(self, task_code, args):
+        self.send(task_code, *args)
         
     def is_connected(self):
         return self.connected
@@ -83,14 +81,15 @@ class Client(threading.Thread):
     def send(self, *msg):
         msg = self.format_message(msg)
         self.send_with_size(self.crypto.encrypt(msg))
+
     def recv(self):
         return self.unformat_message(self.crypto.decrypt(self.recv_with_size()))
         
     def format_message(self, args):
-        return b"".join(args)
+        return b"/".join(args)
         
     def unformat_message(self, msg):
-        return [msg]
+        return msg.split('/')
 
 
 class ClientCrypto:
@@ -107,7 +106,7 @@ class ClientCrypto:
     
     def encrypt(self, plaintext):
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
-        padded_data = pad(plaintext.encode(), AES.block_size)
+        padded_data = pad(plaintext, AES.block_size)
         ciphertext = cipher.encrypt(padded_data)
 
         return ciphertext

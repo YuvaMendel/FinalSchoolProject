@@ -41,6 +41,7 @@ class ClientHandler(threading.Thread):
         super().__init__()
         self.crypto = ServerCrypto(rsa_key)
         self.soc = soc
+        self.connected = True
     
     def run(self):
         self.handshake()
@@ -67,7 +68,16 @@ class ClientHandler(threading.Thread):
         return [msg]
         
     def business_logic(self):
-        pass
+        while self.connected:
+            request = self.recv()
+            opcode = request[0]
+            if opcode == protocol.REQUEST_IMAGE:
+                num = self.identify_num()
+                self.send(protocol.IMAGE_IDENTIFIED, num)
+
+
+    def identify_num(self):
+        return '3'
         
         
 class ServerCrypto:
