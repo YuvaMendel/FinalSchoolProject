@@ -1,4 +1,2 @@
 ﻿__pycache__/ 
-*.iml
-*.xml
-.idea/.gitignore
+.idea/
