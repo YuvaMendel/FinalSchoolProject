@@ -60,20 +60,21 @@ class ClientHandler(threading.Thread):
         msg = self.format_message(msg)
         self.send_with_size(self.crypto.encrypt(msg))
     def recv(self):
-        return self.unformat_message(self.recv_with_size())
-        
+        return self.unformat_message(self.crypto.decrypt(self.recv_with_size()))
+
     def format_message(self, args):
-        return b"".join(args)
+        return b"/".join(args)
+
     def unformat_message(self, msg):
-        return [msg]
+        return msg.split('/')
         
     def business_logic(self):
         while self.connected:
             request = self.recv()
             opcode = request[0]
-            if opcode == protocol.REQUEST_IMAGE:
+            if opcode.encode() == protocol.REQUEST_IMAGE:
                 num = self.identify_num()
-                self.send(protocol.IMAGE_IDENTIFIED, num)
+                self.send(protocol.IMAGE_IDENTIFIED, num.encode())
 
 
     def identify_num(self):

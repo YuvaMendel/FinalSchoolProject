@@ -123,6 +123,9 @@ class ClientGUI:
     def activate(self):
         self.root.mainloop()
 
+    def handle_server_response(self, response):
+        self.display_result(response)
+
 if __name__ == "__main__":
     app = ClientGUI(None)
     app.activate()

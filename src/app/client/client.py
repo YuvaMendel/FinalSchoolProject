@@ -12,13 +12,14 @@ from Crypto.Cipher import PKCS1_OAEP
 
 
 class Client(threading.Thread):
-    def __init__(self, dest_ip, dest_port):
+    def __init__(self, dest_ip, dest_port, gui_callback=None):
         super().__init__()
         self.dest = (dest_ip, dest_port)
         self.sock = socket.socket()
         self.request_queue = queue.Queue()
         self.connected = False
         self.crypto = ClientCrypto()
+        self.gui_callback = gui_callback
     
     def connect(self):
         try:
@@ -61,7 +62,8 @@ class Client(threading.Thread):
             self.business_logic(response)
 
     def business_logic(self, response):
-        print(response)
+        if response[0].encode() == protocol.IMAGE_IDENTIFIED:
+            self.gui_callback.display_result(response[1])
 
     def send_file(self, file_path):
         self.queue_task(protocol.REQUEST_IMAGE, file_path.encode())
