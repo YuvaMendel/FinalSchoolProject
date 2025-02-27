@@ -46,35 +46,28 @@ class ClientHandler(threading.Thread):
     def run(self):
         self.handshake()
         self.business_logic()
-    def recv_with_size(self):
-        return protocol.recv_by_size(self.soc)
-        
-    def send_with_size(self, msg):
-        protocol.send_by_size(self.soc, msg)
+
+
     
     def handshake(self):
-        self.send_with_size(self.crypto.get_public())
-        self.crypto.decrypt_aes_key(self.recv_with_size(), self.recv_with_size()) # Get aes key and aes iv (for cbc) and give them to crypto object)
+        protocol.send_by_size(self.soc, self.crypto.get_public())
+        self.crypto.decrypt_aes_key(protocol.recv_by_size(self.soc), protocol.recv_by_size(self.soc)) # Get aes key and aes iv (for cbc) and give them to crypto object)
         self.send(protocol.ACK_START)
     def send(self, *msg):
-        msg = self.format_message(msg)
-        self.send_with_size(self.crypto.encrypt(msg))
+        msg = protocol.format_message(msg)
+        protocol.send_by_size(self.soc, self.crypto.encrypt(msg))
     def recv(self):
-        return self.unformat_message(self.crypto.decrypt(self.recv_with_size()))
+        return protocol.unformat_message(self.crypto.decrypt(protocol.recv_by_size(self.soc)))
 
-    def format_message(self, args):
-        return b"/".join(args)
 
-    def unformat_message(self, msg):
-        return msg.split('/')
         
     def business_logic(self):
         while self.connected:
             request = self.recv()
             opcode = request[0]
-            if opcode.encode() == protocol.REQUEST_IMAGE:
+            if opcode == protocol.REQUEST_IMAGE:
                 num = self.identify_num()
-                self.send(protocol.IMAGE_IDENTIFIED, num.encode())
+                self.send(protocol.IMAGE_IDENTIFIED, num)
 
 
     def identify_num(self):
@@ -100,7 +93,7 @@ class ServerCrypto:
             raise ValueError("AES key and IV must be set before encryption.")
 
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
-        padded_data = pad(plaintext, AES.block_size)
+        padded_data = pad(plaintext.encode(), AES.block_size)
         ciphertext = cipher.encrypt(padded_data)
 
         return ciphertext

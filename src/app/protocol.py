@@ -1,11 +1,13 @@
+import base64
 # General Protocol Constants
 HOST = "127.0.0.1"  # Server address
 PORT = 6627         # Communication port
-SIZE_OF_SIZE = 12   # Size of the size feild in the beginning of the message
+SIZE_OF_SIZE = 12   # Size of the size field in the beginning of the message
+SEPERATOR = '/'     # Seperator for the fields of the message
 #Message Codes (OPCODES)
-ACK_START = b'GKSC' # server got key from client and is ready to start communication
-REQUEST_IMAGE = b'RIPP'
-IMAGE_IDENTIFIED = b'RIPR'
+ACK_START = 'GKSC' # server got key from client and is ready to start communication
+REQUEST_IMAGE = 'RIPP'
+IMAGE_IDENTIFIED = 'RIPR'
 
 
 
@@ -46,6 +48,11 @@ def send_by_size(sock, data):
     data = len_data + data
     sock.sendall(data)
     __log("Sent", data)
+def format_message(args):
+    base64_args = [base64.b64encode(str(arg).encode()).decode() for arg in args]
+    return SEPERATOR.join(base64_args)
+def unformat_message(msg):
+    return [(base64.b64decode(s.encode())).decode() for s in msg.split(SEPERATOR)]
     
 def __log(prefix, data, max_to_print=100):
     if not DEBUG_FLAG:

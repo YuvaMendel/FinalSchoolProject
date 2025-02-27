@@ -34,17 +34,15 @@ class Client(threading.Thread):
         self.handshake()
         self.activate()
 
-    def recv_with_size(self):
-        return protocol.recv_by_size(self.sock)
+
         
-    def send_with_size(self, msg):
-        protocol.send_by_size(self.sock, msg)
+
         
     def handshake(self):
-        rsa_public = self.recv_with_size()
+        rsa_public = protocol.recv_by_size(self.sock)
         encrypted_aes_key, aes_iv = self.crypto.encrypted_key_iv(rsa_public)
-        self.send_with_size(encrypted_aes_key)
-        self.send_with_size(aes_iv)
+        protocol.send_by_size(self.sock, encrypted_aes_key)
+        protocol.send_by_size(self.sock, aes_iv)
         return_message = self.recv()
         print(return_message[0])
 
@@ -62,11 +60,11 @@ class Client(threading.Thread):
             self.business_logic(response)
 
     def business_logic(self, response):
-        if response[0].encode() == protocol.IMAGE_IDENTIFIED:
+        if response[0] == protocol.IMAGE_IDENTIFIED:
             self.gui_callback.display_result(response[1])
 
     def send_file(self, file_path):
-        self.queue_task(protocol.REQUEST_IMAGE, file_path.encode())
+        self.queue_task(protocol.REQUEST_IMAGE, file_path)
 
     def handle_task(self, task_code, args):
         self.send(task_code, *args)
@@ -79,20 +77,14 @@ class Client(threading.Thread):
         self.connected = False
         self.request_queue.put(None)
         self.sock.close()
-    
+
     def send(self, *msg):
-        msg = self.format_message(msg)
-        self.send_with_size(self.crypto.encrypt(msg))
+        msg = protocol.format_message(msg)
+        protocol.send_by_size(self.sock, self.crypto.encrypt(msg))
 
     def recv(self):
-        return self.unformat_message(self.crypto.decrypt(self.recv_with_size()))
+        return protocol.unformat_message(self.crypto.decrypt(protocol.recv_by_size(self.sock)))
         
-    def format_message(self, args):
-        return b"/".join(args)
-        
-    def unformat_message(self, msg):
-        return msg.split('/')
-
 
 class ClientCrypto:
     def __init__(self):
@@ -108,7 +100,7 @@ class ClientCrypto:
     
     def encrypt(self, plaintext):
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
-        padded_data = pad(plaintext, AES.block_size)
+        padded_data = pad(plaintext.encode(), AES.block_size)
         ciphertext = cipher.encrypt(padded_data)
 
         return ciphertext
