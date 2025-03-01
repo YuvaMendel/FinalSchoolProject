@@ -1,6 +1,8 @@
 import numpy as np
+import pickle
 __author__ = "Yuval Mendel"
 #This code traines a fully connected Neural Network
+
 
 class Network:
     def __init__(self, sizes, activation_function='sigmoid', loss_function='mse_loss'):
@@ -18,6 +20,13 @@ class Network:
         
         for i in range(1,len(sizes)):
             self.layers.append(Layer(sizes[i], sizes[i-1], activation=self.activation_function))
+
+    def save(self, file_path):
+        """Saves the model to a file.
+           - file_path: The path to the file.
+        """
+        with open(file_path, 'wb') as file:
+            pickle.dump(self, file)
     
     def forward(self, input_data):
         """Passes the data through the network layers.
@@ -62,7 +71,7 @@ class Network:
             layer.weights -= layer.weights_gradient*learning_rate
             layer.biases -= layer.biases_gradient*learning_rate
             
-    def stochastic_gradient_descent(self, dataset, targets, learning_rate=0.01, batch_size=32, epocs=30):
+    def stochastic_gradient_descent(self, dataset, targets, learning_rate=0.01, batch_size=32, epochs=30):
         """Trains the neural network
            - dataset: the training data
            - targets: the desired outcome for each data unit in the data set
@@ -70,7 +79,7 @@ class Network:
            - batch_size: the amount of data units in each batch of data
            - epocs: the amount of times the dataset is used
         """
-        for epoc in range(epocs):
+        for epoc in range(epochs):
             total_accuracy = 0
             total_batches = 0
 
@@ -93,7 +102,9 @@ class Network:
                 total_accuracy += accuracy
                 total_batches += 1
             avg_accuracy = total_accuracy / total_batches
-            print(f"Epoch {epoc + 1}/{epocs}. Average accuracy: {avg_accuracy * 100:.2f}%")
+            print(f"Epoch {epoc + 1}/{epochs}. Average accuracy: {avg_accuracy * 100:.2f}%")
+
+
                 
     
         

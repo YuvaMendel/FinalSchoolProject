@@ -66,11 +66,11 @@ class ClientHandler(threading.Thread):
             request = self.recv()
             opcode = request[0]
             if opcode == protocol.REQUEST_IMAGE:
-                num = self.identify_num()
+                num = self.identify_num(request[1], request[2])
                 self.send(protocol.IMAGE_IDENTIFIED, num)
 
-
-    def identify_num(self):
+    def identify_num(self, picture_name, picture_content):
+        print(picture_name)
         return '3'
         
         

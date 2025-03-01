@@ -67,7 +67,11 @@ class Client(threading.Thread):
         self.queue_task(protocol.REQUEST_IMAGE, file_path)
 
     def handle_task(self, task_code, args):
-        self.send(task_code, *args)
+        if task_code == protocol.REQUEST_IMAGE:
+            file_name = args[0].split('/')[-1]
+            with self.open_file(args[0], 'rb') as file:
+                file_content = file.read()
+                self.send(protocol.REQUEST_IMAGE, file_name, file_content)
         
     def is_connected(self):
         return self.connected
