@@ -2,6 +2,7 @@ import numpy as np
 from fully_connected import Network  # Import the Network class from your module
 from sklearn.datasets import fetch_openml
 
+
 # Load and preprocess the MNIST dataset
 def load_mnist():
     # Load the dataset from a local file or download it

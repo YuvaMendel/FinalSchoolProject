@@ -3,7 +3,7 @@ import base64
 HOST = "127.0.0.1"  # Server address
 PORT = 6627         # Communication port
 SIZE_OF_SIZE = 12   # Size of the size field in the beginning of the message
-SEPERATOR = '/'     # Seperator for the fields of the message
+SEPERATOR = '~'     # Seperator for the fields of the message
 #Message Codes (OPCODES)
 ACK_START = 'GKSC' # server got key from client and is ready to start communication
 REQUEST_IMAGE = 'RIPP'
@@ -49,10 +49,16 @@ def send_by_size(sock, data):
     sock.sendall(data)
     __log("Sent", data)
 def format_message(args):
-    base64_args = [base64.b64encode(str(arg).encode()).decode() for arg in args]
+    args = list(args)
+    for i in range(len(args)):
+        if type(args[i]) == str:
+            args[i] = args[i].encode()
+
+    base64_args = [base64.b64encode(arg).decode() for arg in args]
     return SEPERATOR.join(base64_args)
 def unformat_message(msg):
-    return [(base64.b64decode(s.encode())).decode() for s in msg.split(SEPERATOR)]
+    split_msg = msg.split(SEPERATOR)
+    return [(base64.b64decode(s.encode())) for s in split_msg]
     
 def __log(prefix, data, max_to_print=100):
     if not DEBUG_FLAG:

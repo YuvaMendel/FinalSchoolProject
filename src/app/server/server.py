@@ -10,8 +10,17 @@ from Crypto.Cipher import PKCS1_OAEP
 
 import sys
 import os
+import io
+import pickle
+from PIL import Image
+import numpy as np
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+
 import app.protocol as protocol
+import fully_connected
+
 
 __auther__ = 'Yuval Mendel'
 
@@ -42,6 +51,7 @@ class ClientHandler(threading.Thread):
         self.crypto = ServerCrypto(rsa_key)
         self.soc = soc
         self.connected = True
+        self.ai = pickle.load(open('mnist_model', 'rb')) # Load the model
     
     def run(self):
         self.handshake()
@@ -57,23 +67,53 @@ class ClientHandler(threading.Thread):
         msg = protocol.format_message(msg)
         protocol.send_by_size(self.soc, self.crypto.encrypt(msg))
     def recv(self):
-        return protocol.unformat_message(self.crypto.decrypt(protocol.recv_by_size(self.soc)))
+        rdata = protocol.recv_by_size(self.soc)
+        decrypted_data = self.crypto.decrypt(rdata)
+        return protocol.unformat_message(decrypted_data)
 
 
         
     def business_logic(self):
         while self.connected:
             request = self.recv()
-            opcode = request[0]
+            opcode = request[0].decode()
             if opcode == protocol.REQUEST_IMAGE:
-                num = self.identify_num(request[1], request[2])
+                num = self.identify_num(request[1].decode(), request[2])
                 self.send(protocol.IMAGE_IDENTIFIED, num)
 
     def identify_num(self, picture_name, picture_content):
         print(picture_name)
-        return '3'
-        
-        
+        image_array = image_to_1d_array(picture_content)
+        prediction = self.ai.forward(image_array)
+        print(prediction)
+        return str(np.argmax(prediction[0]))
+
+
+def image_to_1d_array(image_content):
+    # Load the image from the file content
+    image_file = io.BytesIO(image_content)
+    image = Image.open(image_file)
+
+    # Convert the image to grayscale
+    image = image.convert('L')
+    # Resize the image to 28x28 pixels
+    image = image.resize((28, 28))
+    # Save the grayscale image to the Downloads directory
+    downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'try.png')
+    image.save(downloads_path)
+
+
+
+    # Convert the image to a NumPy array
+    image_array = np.array(image)
+
+    # Normalize the pixel values to be between 0 and 1
+    image_array = image_array / 255.0
+
+    # Flatten the 2D array to a 1D array
+    image_1d_array = image_array.flatten()
+
+    return image_1d_array
 class ServerCrypto:
     def __init__(self, rsa_key):
         self.rsa_key = rsa_key

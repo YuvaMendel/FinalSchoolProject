@@ -60,7 +60,8 @@ class Client(threading.Thread):
             self.business_logic(response)
 
     def business_logic(self, response):
-        if response[0] == protocol.IMAGE_IDENTIFIED:
+        opcode = response[0].decode()
+        if opcode == protocol.IMAGE_IDENTIFIED:
             self.gui_callback.display_result(response[1])
 
     def send_file(self, file_path):
@@ -69,7 +70,7 @@ class Client(threading.Thread):
     def handle_task(self, task_code, args):
         if task_code == protocol.REQUEST_IMAGE:
             file_name = args[0].split('/')[-1]
-            with self.open_file(args[0], 'rb') as file:
+            with open(args[0], 'rb') as file:
                 file_content = file.read()
                 self.send(protocol.REQUEST_IMAGE, file_name, file_content)
         
@@ -84,6 +85,7 @@ class Client(threading.Thread):
 
     def send(self, *msg):
         msg = protocol.format_message(msg)
+
         protocol.send_by_size(self.sock, self.crypto.encrypt(msg))
 
     def recv(self):
