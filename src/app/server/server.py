@@ -22,6 +22,7 @@ import app.protocol as protocol
 import fully_connected
 
 
+
 __auther__ = 'Yuval Mendel'
 
 class Server:
@@ -85,8 +86,10 @@ class ClientHandler(threading.Thread):
         print(picture_name)
         image_array = image_to_1d_array(picture_content)
         prediction = self.ai.forward(image_array)
+
         print(prediction)
         return str(np.argmax(prediction[0]))
+
 
 
 def image_to_1d_array(image_content):
@@ -98,6 +101,8 @@ def image_to_1d_array(image_content):
     image = image.convert('L')
     # Resize the image to 28x28 pixels
     image = image.resize((28, 28))
+    # Invert the image (255 - pixel value)
+    image = Image.eval(image, lambda x: 255 - x)
     # Save the grayscale image to the Downloads directory
     downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'try.png')
     image.save(downloads_path)
@@ -110,8 +115,12 @@ def image_to_1d_array(image_content):
     # Normalize the pixel values to be between 0 and 1
     image_array = image_array / 255.0
 
+
     # Flatten the 2D array to a 1D array
-    image_1d_array = image_array.flatten()
+    image_1d_array = image_array.flatten().reshape(1, 784)
+
+
+    print(image_1d_array)
 
     return image_1d_array
 class ServerCrypto:

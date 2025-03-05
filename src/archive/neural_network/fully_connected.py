@@ -173,6 +173,9 @@ def categorical_crossentropy(predicted, target):
 def categorical_crossentropy_derivative(predicted, target):
     return predicted - target
 
+
+
+
 loss_functions = {
     'mse_loss':(mse_loss, mse_loss_derivative),
     'categorical_crossentropy':(categorical_crossentropy, categorical_crossentropy_derivative)
