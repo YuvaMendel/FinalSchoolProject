@@ -1,1 +1,4 @@
 learning about nueral networks
+
+problems:
+    text to thin when resizing image
