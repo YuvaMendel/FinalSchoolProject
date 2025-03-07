@@ -21,6 +21,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 import app.protocol as protocol
 import fully_connected
 
+from keyboard import on_press_key
+
 
 
 __auther__ = 'Yuval Mendel'
@@ -33,17 +35,33 @@ class Server:
         self.sock.bind(('127.0.0.1', protocol.PORT))
         self.sock.listen(10)
         self.clients = []
+        self.sock.settimeout(0.1)
+        self.server_lock = threading.Lock()
+        on_press_key('q', lambda _: self.close())
         
     def activate_server(self):
         self.online = True
         while self.online:
             try:
-                s, _ = self.sock.accept()
-                handler = ClientHandler(s, self.rsa_key)
-                self.clients.append(handler)
-                handler.start()
+                with self.server_lock:
+                    s, _ = self.sock.accept()
+                    handler = ClientHandler(s, self.rsa_key)
+                    self.clients.append(handler)
+                    handler.start()
+            except socket.timeout:
+                pass
             except socket.error as e:
                 print(f"Socket error: {e}")
+
+    def close(self):
+        with self.server_lock:
+            self.online = False
+
+            for client in self.clients:
+                client.connected = False
+            for client in self.clients:
+                client.join()
+        print("Server closed")
                 
                 
 class ClientHandler(threading.Thread):
@@ -51,11 +69,13 @@ class ClientHandler(threading.Thread):
         super().__init__()
         self.crypto = ServerCrypto(rsa_key)
         self.soc = soc
+
         self.connected = True
         self.ai = pickle.load(open('mnist_model', 'rb')) # Load the model
     
     def run(self):
         self.handshake()
+        self.soc.settimeout(0.1)
         self.business_logic()
 
 
@@ -76,11 +96,14 @@ class ClientHandler(threading.Thread):
         
     def business_logic(self):
         while self.connected:
-            request = self.recv()
-            opcode = request[0].decode()
-            if opcode == protocol.REQUEST_IMAGE:
-                num = self.identify_num(request[1].decode(), request[2])
-                self.send(protocol.IMAGE_IDENTIFIED, num)
+            try:
+                request = self.recv()
+                opcode = request[0].decode()
+                if opcode == protocol.REQUEST_IMAGE:
+                    num = self.identify_num(request[1].decode(), request[2])
+                    self.send(protocol.IMAGE_IDENTIFIED, num)
+            except socket.timeout:
+                pass
 
     def identify_num(self, picture_name, picture_content):
         print(picture_name)

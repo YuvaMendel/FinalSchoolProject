@@ -1,4 +1,7 @@
-learning about nueral networks
+learning about neural networks
 
 problems:
-    text to thin when resizing image
+    text too thin when resizing image
+    added augmentation to the dataset to try to fix this
+    added more layers to the model to try to add accuracy to the model when augmenting the data - didn't work
+    decided to try to implement a different model (CNN) to see if that would work better
