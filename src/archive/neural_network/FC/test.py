@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_openml
 
 # Import your custom Network class
-from fully_connected import Network  # Correct import
 
 # Load MNIST data
 mnist = fetch_openml('mnist_784')

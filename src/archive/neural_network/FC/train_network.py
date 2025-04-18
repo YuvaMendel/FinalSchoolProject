@@ -1,5 +1,5 @@
 import numpy as np
-from fully_connected import Network  # Import your custom network class
+from src.archive.neural_network.FC.fully_connected import Network  # Import your custom network class
 from sklearn.datasets import fetch_openml
 from PIL import Image
 import random
