@@ -1,31 +1,16 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from layer import Layer
+from base import TrainableLayer
 
 
-class TrainableLayer(Layer):
-    def __init__(self):
-        self.weights = None
-        self.biases = None
-        self.weights_gradient = None
-        self.biases_gradient = None
-
-    def update_parameters(self, learning_rate):
-        self.weights -= learning_rate * self.weights_gradient
-
-        self.biases -= learning_rate * self.biases_gradient
-
-
-#  class ConvLayer(Layer):
-
-
-class DenseLayer(Layer):
+class DenseLayer(TrainableLayer):
     def __init__(self, output_size, input_size, initialization):
         """Initializes a layer with weights and biases.
            - output_size: Number of neurons in this layer.
            - input_size: Number of neurons in the previous layer.
            - The weights matrix is initialized using Xavier initialization.
         """
+        super().__init__()
         self.weights = initialization(input_size, output_size)
         self.biases = np.zeros((1, output_size))
         self.output = None
