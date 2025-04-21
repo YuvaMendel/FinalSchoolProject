@@ -45,7 +45,6 @@ class Conv2D(TrainableLayer):
         self.input_data = np.pad(input_data, ((0,0), (0,0), (self.padding, self.padding), (self.padding, self.padding)), mode='constant')
         pass
 
-
     def backward(self, output_grad):
         """Computes the gradient of the loss with respect to the input.
            - output_grad: The gradient of the loss with respect to the output.
@@ -53,7 +52,10 @@ class Conv2D(TrainableLayer):
         """
         pass
 
-    def _im2col(self):
-        patches = []
+    def _im2col(self): # I am too cool
+        N, C, H, W = self.input_data.shape()
+        out_h = (H - self.kernel_size[0])//self.stride + 1
+        out_w = (W - self.kernel_size[1])//self.stride + 1
+        #REMINDER TO USE  np.lib.stride_tricks.as_strided
 
 
