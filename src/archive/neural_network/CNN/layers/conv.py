@@ -42,7 +42,9 @@ class Conv2D(TrainableLayer):
            - input_data: The input from the previous layer.
            - Saves calculation and returns it.
         """
+        self.input_data = np.pad(input_data, ((0,0), (0,0), (self.padding, self.padding), (self.padding, self.padding)), mode='constant')
         pass
+
 
     def backward(self, output_grad):
         """Computes the gradient of the loss with respect to the input.
@@ -50,4 +52,8 @@ class Conv2D(TrainableLayer):
            - Returns the gradient of the loss with respect to the input.
         """
         pass
+
+    def _im2col(self):
+        patches = []
+
 
