@@ -15,8 +15,8 @@ class Conv2D(TrainableLayer):
         super().__init__()
         kh, kw = kernel_size
 
-        #  The biases have the shape (1, out_channels) (one bias per filter)
-        self.biases = np.zeros((1, out_channels))
+        #  The biases have the shape (out_channels) (one bias per filter)
+        self.biases = np.zeros(out_channels)
 
         #  The Weights have the shape (out_channels, in_channels, kh, kw)
         #  for each filter, we have (in_channels * kh * kw) weights (the shape of the kernel)
@@ -29,7 +29,8 @@ class Conv2D(TrainableLayer):
         self.out_channels = out_channels
 
         self.stride = stride
-        self.kernel_size = (kh, kw)
+        self.kh = kh
+        self.kw = kw
 
         self.padding = padding
 
@@ -53,9 +54,18 @@ class Conv2D(TrainableLayer):
         pass
 
     def _im2col(self): # I am too cool
-        N, C, H, W = self.input_data.shape()
-        out_h = (H - self.kernel_size[0])//self.stride + 1
-        out_w = (W - self.kernel_size[1])//self.stride + 1
-        #REMINDER TO USE  np.lib.stride_tricks.as_strided
+        N, C, H, W = self.input_data.shape
+
+        #  Calculate the output shape
+        out_h = (H - self.kh)//self.stride + 1
+        out_w = (W - self.kw)//self.stride + 1
+
+        out_shape = (N, C, out_h, out_w, self.kh, self.kw)
+
+        #  Calculate the strides
+        s0, s1, s2, s3 = self.input_data.strides
+        strides = (s0, s1, s2 * self.stride, s3 * self.stride, s2, s3)
+        patches = np.lib.stride_tricks.as_strided(self.input_data, shape=out_shape, strides=strides)
+        patches.transpose(0, 2, 3, 1, 4, 5)
 
 
