@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def im2col(input_data, kernel_size, stride):
+def im2col(input_data, kernel_size, stride):  # I am too cool
     """
     Extracts sliding local blocks (patches) from a padded input tensor and flattens them into rows.
 
@@ -37,19 +37,49 @@ def im2col(input_data, kernel_size, stride):
     return patches
 
 
-def col2im(patches, input_shape, kernel_size, stride, padding):
+def col2im(patch_grads, input_shape, kernel_size, stride, padding):
     """
-    Reconstructs the original input tensor from the flattened patches.
+    Reconstructs the full input gradient tensor from local patch gradients (reverse of im2col).
+
+    This function takes the per-output-location patch gradients (e.g., from backpropagation)
+    and scatters them back into the full input tensor, summing overlapping contributions.
 
     Args:
-        patches (ndarray): A 2D array of shape (N * out_h * out_w, C * kh * kw),
-                           where each row is a flattened receptive field from the input.
-        input_shape (tuple): Shape of the original input tensor (N, C, H, W).
-        kernel_size (tuple): Tuple of (kh, kw), the kernel height and width.
-        stride (int): Stride of the convolution.
-        padding (int): Padding added to the input during forward pass.
+        patch_grads (ndarray): Gradient patches of shape (N, C, kh, kw, out_h, out_w),
+                               where each patch is a (C × kh × kw) gradient for an output pixel.
+        input_shape (tuple): Shape of the padded input tensor, e.g. (N, C, H, W).
+        kernel_size (tuple): Tuple (kh, kw), height and width of the kernel.
+        stride (int): Stride used during the forward convolution.
+        padding (int): Padding used during the forward convolution.
 
     Returns:
-        reconstructed (ndarray): The reconstructed input tensor of shape (N, C, H, W).
+        input_grad (ndarray): Reconstructed input gradient tensor of shape:
+                              (N, C, H - 2 * padding, W - 2 * padding) if padding > 0,
+                              or (N, C, H, W) if no padding.
     """
-    pass
+    N, C, H, W = input_shape
+    kh, kw = kernel_size
+    out_h = patch_grads.shape[4]
+    out_w = patch_grads.shape[5]
+    input_grad_padded = np.zeros(input_shape, dtype=patch_grads.dtype)
+    # Calculate the strided view shape and strides
+    shape = (N, C, out_h, out_w, kh, kw)
+    s0, s1, s2, s3 = input_grad_padded.strides
+    strides = (s0, s1, s2 * stride, s3 * stride, s2, s3)
+
+    # Create a writeable strided view into input_grad_padded
+    patch_view = np.lib.stride_tricks.as_strided(
+        input_grad_padded,
+        shape=shape,
+        strides=strides,
+        writeable=True
+    )
+
+    # Transpose patches to match patch_view shape
+    patch_reshaped = patch_grads.transpose(0, 1, 4, 5, 2, 3)
+    np.add.at(patch_view, (...,), patch_reshaped)
+    if padding > 0:
+        return input_grad_padded[:, :, padding:-padding, padding:-padding]
+    return input_grad_padded
+
+
