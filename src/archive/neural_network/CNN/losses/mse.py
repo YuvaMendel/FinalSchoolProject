@@ -1,10 +1,13 @@
 import numpy as np
-from base import LossFunction
+from base import Loss
 
 
-class MeanSquaredError(LossFunction):
-    def __call__(self, predicted, target):
-        return np.mean((predicted - target) ** 2)
+class MeanSquaredError(Loss):
+    def __init__(self):
+        super().__init__()
 
-    def derivative(self, predicted, target):
-        return 2 * (predicted - target) / target.size
+    def _compute_loss(self):
+        return np.mean((self.predictions - self.targets) ** 2)
+
+    def _compute_grad(self):
+        return 2 * (self.predictions - self.targets) / self.targets.size

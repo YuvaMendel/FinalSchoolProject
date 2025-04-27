@@ -1,12 +1,15 @@
 import numpy as np
-from base import LossFunction
+from base import Loss
 
 
-class CategoricalCrossentropy(LossFunction):
-    def __call__(self, predicted, target):
+class CategoricalCrossentropy(Loss):
+    def __init__(self):
+        super().__init__()
+
+    def _compute_loss(self):
         # add epsilon to avoid log(0)
-        return -np.sum(target * np.log(predicted + 1e-8)) / target.shape[0]
+        return -np.sum(self.targets * np.log(self.predictions + 1e-8)) / self.targets.shape[0]
 
-    def derivative(self, predicted, target):
+    def _compute_grad(self):
         # assumes predicted already passed through softmax
-        return predicted - target
+        return self.predictions - self.targets
