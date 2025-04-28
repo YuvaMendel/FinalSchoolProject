@@ -1,8 +1,8 @@
 import numpy as np
-from base import Loss
+from losses import Loss
 
 
-class CategoricalCrossentropy(Loss):
+class CategoricalCrossEntropy(Loss):
     def __init__(self):
         super().__init__()
 

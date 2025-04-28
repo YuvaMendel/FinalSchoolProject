@@ -1,4 +1,4 @@
-from layers.base import Layer
+from layers import Layer
 import numpy as np
 
 class ReLU(Layer):

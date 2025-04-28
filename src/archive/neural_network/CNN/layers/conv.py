@@ -1,6 +1,6 @@
 import numpy as np
-from CNN.layers.base import TrainableLayer
-from CNN.utils.tensor_patches import im2col, col2im
+from layers import TrainableLayer
+from utils import im2col, col2im
 
 
 class Conv2D(TrainableLayer):

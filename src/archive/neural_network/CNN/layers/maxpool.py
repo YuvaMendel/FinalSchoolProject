@@ -1,5 +1,5 @@
 import numpy as np
-from base import Layer
+from layers import Layer
 
 
 class MaxPool2D(Layer):

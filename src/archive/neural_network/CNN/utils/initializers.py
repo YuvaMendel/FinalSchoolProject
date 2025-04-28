@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def xavier_initialization(n_in, n_out):
+def xavier_initializer(n_in, n_out):
     """Static method to initialize a weights matrix for a layer using Xavier initialization.
        - n_in: Number of neurons in the previous layer.
        - n_out: Number of neurons in the current layer.

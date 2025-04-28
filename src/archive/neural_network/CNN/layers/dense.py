@@ -1,5 +1,5 @@
 import numpy as np
-from base import TrainableLayer
+from layers import TrainableLayer
 
 
 class DenseLayer(TrainableLayer):

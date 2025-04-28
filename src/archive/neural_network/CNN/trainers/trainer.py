@@ -11,6 +11,7 @@ class Trainer:
 
     def train(self, dataloader, num_epochs):
         for epoch in range(num_epochs):
+            total_loss = 0
             for inputs, targets in dataloader:
                 # Forward pass
                 outputs = self.model.forward(inputs)
@@ -19,3 +20,6 @@ class Trainer:
                 output_grad = self.loss_function.backward()
                 self.model.backward(output_grad)
                 self.optimizer.step()
+                total_loss += loss
+            if len(dataloader) > 0:
+                print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {total_loss/len(dataloader)}")

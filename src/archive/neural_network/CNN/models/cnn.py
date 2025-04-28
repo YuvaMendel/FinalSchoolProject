@@ -1,4 +1,4 @@
-from layers import base
+from layers import TrainableLayer, Layer
 
 
 class CNN:
@@ -31,5 +31,5 @@ class CNN:
            - learning_rate: Learning rate for the update.
         """
         for layer in self.layers:
-            if isinstance(layer, base.TrainableLayer):
+            if isinstance(layer, TrainableLayer):
                 layer.update_parameters(learning_rate)
