@@ -25,3 +25,6 @@ class DataLoader:
         batch_labels_data = self.labels[batch_indices]
         self.current_index = end
         return batch_images_data, batch_labels_data
+
+    def __len__(self):
+        return len(self.images)

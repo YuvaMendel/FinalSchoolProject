@@ -32,3 +32,5 @@ if __name__ == '__main__':
     epochs = 10
     trainer = Trainer(model, optimizer, loss)
     trainer.train(train_loader, epochs)
+    tester = Tester(model, loss)
+    tester.test(test_loader)
