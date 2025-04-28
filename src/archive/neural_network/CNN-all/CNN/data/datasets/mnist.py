@@ -3,13 +3,11 @@ import urllib.request
 import gzip
 import numpy as np
 
-
 def download(url, filepath):
     """Downloads a file from a URL if it doesn't exist."""
     if not os.path.exists(filepath):
         print(f"Downloading {url}...")
         urllib.request.urlretrieve(url, filepath)
-
 
 def load_images(filepath):
     """Loads MNIST image file."""
@@ -22,7 +20,6 @@ def load_images(filepath):
         images = images.reshape(num_images, rows * cols)
         return images
 
-
 def load_labels(filepath):
     """Loads MNIST label file."""
     with gzip.open(filepath, 'rb') as f:
@@ -31,6 +28,11 @@ def load_labels(filepath):
         labels = np.frombuffer(f.read(), dtype=np.uint8)
         return labels
 
+def one_hot_encode(labels, num_classes=10):
+    """One-hot encodes the labels."""
+    one_hot = np.zeros((labels.shape[0], num_classes), dtype=np.float32)
+    one_hot[np.arange(labels.shape[0]), labels.astype(int)] = 1
+    return one_hot
 
 def load_mnist(data_dir="data_files/mnist", normalize=True, flatten=True):
     """Downloads and loads the MNIST dataset."""
@@ -62,8 +64,11 @@ def load_mnist(data_dir="data_files/mnist", normalize=True, flatten=True):
         train_images = train_images.reshape(train_images.shape[0], 1, 28, 28)
         test_images = test_images.reshape(test_images.shape[0], 1, 28, 28)
 
+    # 🔥 NEW: One-hot encode the labels
+    train_labels = one_hot_encode(train_labels, num_classes=10)
+    test_labels = one_hot_encode(test_labels, num_classes=10)
 
-    # Concatenate
+    # Pack datasets
     train_dataset = (train_images, train_labels)
     test_dataset = (test_images, test_labels)
 
