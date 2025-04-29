@@ -1,4 +1,6 @@
 import numpy as np
+
+
 class Tester:
     def __init__(self, model, loss_function=None):
         self.model = model
@@ -16,5 +18,7 @@ class Tester:
             true_labels = np.argmax(targets, axis=1)
             correct += np.sum(predictions == true_labels)
         if self.loss_function is not None:
-            print(f"Test Loss: {loss / len(dataloader)}")
-        print(f"Accuracy: {correct / len(dataloader)}")
+            loss /= len(dataloader)
+        accuracy = correct / len(dataloader)
+        return loss, accuracy
+

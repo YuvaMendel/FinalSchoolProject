@@ -16,10 +16,10 @@ from PIL import Image
 import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
+from CNN.models import CNN
 
 import app.protocol as protocol
-import fully_connected
+
 
 from keyboard import on_press_key
 
@@ -71,7 +71,7 @@ class ClientHandler(threading.Thread):
         self.soc = soc
 
         self.connected = True
-        self.ai = pickle.load(open('mnist_model', 'rb')) # Load the model
+        self.ai = pickle.load(open('model.pkl', 'rb')) # Load the model
     
     def run(self):
         self.handshake()
@@ -137,15 +137,13 @@ def image_to_1d_array(image_content):
 
     # Normalize the pixel values to be between 0 and 1
     image_array = image_array / 255.0
+    image_array = image_array.reshape(1, 1, 28, 28)  # Reshape to (1, 1, 28, 28) for the model
 
 
-    # Flatten the 2D array to a 1D array
-    image_1d_array = image_array.flatten().reshape(1, 784)
 
+    print(image_array)
 
-    print(image_1d_array)
-
-    return image_1d_array
+    return image_array
 class ServerCrypto:
     def __init__(self, rsa_key):
         self.rsa_key = rsa_key

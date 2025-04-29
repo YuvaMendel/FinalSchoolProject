@@ -34,6 +34,7 @@ def one_hot_encode(labels, num_classes=10):
     one_hot[np.arange(labels.shape[0]), labels.astype(int)] = 1
     return one_hot
 
+
 def load_mnist(data_dir="data_files/mnist", normalize=True, flatten=True):
     """Downloads and loads the MNIST dataset."""
     os.makedirs(data_dir, exist_ok=True)

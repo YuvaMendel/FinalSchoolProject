@@ -5,14 +5,13 @@ import numpy as np
 import pickle
 
 def download(url, filepath):
-    """Downloads a file if it doesn't exist."""
+    """Downloads a file from a URL if it doesn't exist."""
     if not os.path.exists(filepath):
         print(f"Downloading {url}...")
         urllib.request.urlretrieve(url, filepath)
 
-
 def load_batch(filepath):
-    """Loads a single batch of CIFAR-10."""
+    """Loads a single CIFAR-10 batch."""
     with open(filepath, 'rb') as f:
         batch = pickle.load(f, encoding='bytes')
         data = batch[b'data']  # shape (10000, 3072)
@@ -20,9 +19,14 @@ def load_batch(filepath):
         data = data.reshape(-1, 3, 32, 32)  # (batch_size, 3, 32, 32)
         return data, np.array(labels)
 
+def one_hot_encode(labels, num_classes=10):
+    """One-hot encodes the labels."""
+    one_hot = np.zeros((labels.shape[0], num_classes), dtype=np.float32)
+    one_hot[np.arange(labels.shape[0]), labels.astype(int)] = 1
+    return one_hot
 
-def load_cifar10(data_dir="data_files/cifar10", normalize=True):
-    """Downloads and loads CIFAR-10 dataset."""
+def load_cifar10(data_dir="data_files/cifar10", normalize=True, one_hot=True):
+    """Downloads and loads the CIFAR-10 dataset."""
     os.makedirs(data_dir, exist_ok=True)
 
     url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
@@ -36,7 +40,7 @@ def load_cifar10(data_dir="data_files/cifar10", normalize=True):
         with tarfile.open(archive_path, 'r:gz') as tar:
             tar.extractall(path=data_dir)
 
-    # Load all training batches
+    # Load training batches
     train_data = []
     train_labels = []
     for i in range(1, 6):
@@ -55,8 +59,12 @@ def load_cifar10(data_dir="data_files/cifar10", normalize=True):
         train_images = train_images.astype(np.float32) / 255.0
         test_images = test_images.astype(np.float32) / 255.0
 
-    # Combine images and labels for DataLoader compatibility
-    train_dataset = np.stack([train_images, train_labels], axis=1)
-    test_dataset = np.stack([test_images, test_labels], axis=1)
+    if one_hot:
+        train_labels = one_hot_encode(train_labels, num_classes=10)
+        test_labels = one_hot_encode(test_labels, num_classes=10)
+
+    # Pack datasets
+    train_dataset = (train_images, train_labels)
+    test_dataset = (test_images, test_labels)
 
     return train_dataset, test_dataset
