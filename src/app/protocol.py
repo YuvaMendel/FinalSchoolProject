@@ -2,20 +2,21 @@ import base64
 # General Protocol Constants
 HOST = "127.0.0.1"  # Server address
 PORT = 6627         # Communication port
-SIZE_OF_SIZE = 12   # Size of the size field in the beginning of the message
+SIZE_OF_SIZE = 7   # Size of the size field in the beginning of the message
 SEPERATOR = '~'     # Seperator for the fields of the message
-#Message Codes (OPCODES)
-ACK_START = 'GKSC' # server got key from client and is ready to start communication
-REQUEST_IMAGE = 'RIPP'
-IMAGE_IDENTIFIED = 'RIPR'
-
-
-
-
-
+# Message Codes (OPCODES)
+ACK_START = 'GKSC'  # server got key from client and is ready to start communication
+REQUEST_IMAGE = 'RIPP'  # client request image recognition
+IMAGE_IDENTIFIED = 'RIPR'  # server identified image
+ERROR = 'ERRR'  # server error
+REQUEST_IMAGES = 'RIHP'  # client requests images that have been recognized (from the database)
+REQUEST_IMAGES_BY_DIGIT = 'RIHD'  # client requests images that have been recognized by digit
+RETURN_IMAGES = 'RIHL'  # server returns images from database
 
 
 DEBUG_FLAG = True
+
+
 def __recv_amount(sock, size=SIZE_OF_SIZE):
     buffer = b''
     while size:
@@ -48,6 +49,8 @@ def send_by_size(sock, data):
     data = len_data + data
     sock.sendall(data)
     __log("Sent", data)
+
+
 def format_message(args):
     args = list(args)
     for i in range(len(args)):
@@ -56,9 +59,12 @@ def format_message(args):
 
     base64_args = [base64.b64encode(arg).decode() for arg in args]
     return SEPERATOR.join(base64_args)
+
+
 def unformat_message(msg):
     split_msg = msg.split(SEPERATOR)
     return [(base64.b64decode(s.encode())) for s in split_msg]
+
     
 def __log(prefix, data, max_to_print=100):
     if not DEBUG_FLAG:
@@ -70,3 +76,14 @@ def __log(prefix, data, max_to_print=100):
         except (UnicodeDecodeError, AttributeError):
             pass
     print(f"\n{prefix}({len(data)})>>>{data_to_log}")
+
+
+"""def send(self, *msg):
+    msg = format_message(msg)
+    send_by_size(self.soc, self.crypto.encrypt(msg))
+
+
+def recv(self):
+    rdata = recv_by_size(self.soc)
+    decrypted_data = self.crypto.decrypt(rdata)
+    return unformat_message(decrypted_data)"""

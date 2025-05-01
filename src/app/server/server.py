@@ -14,18 +14,20 @@ import io
 import pickle
 from PIL import Image
 import numpy as np
+import img_db_orm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from CNN.models import CNN
 
 import app.protocol as protocol
 
-
 from keyboard import on_press_key
 
 
-
 __auther__ = 'Yuval Mendel'
+
+db_lock = threading.Lock()
+
 
 class Server:
     def __init__(self):
@@ -72,50 +74,74 @@ class ClientHandler(threading.Thread):
 
         self.connected = True
         self.ai = pickle.load(open('model.pkl', 'rb')) # Load the model
+        self.db_orm = img_db_orm.ImagesORM()
+        with db_lock:
+            self.db_orm.create_tables()
     
     def run(self):
         self.handshake()
         self.soc.settimeout(0.1)
         self.business_logic()
 
-
-    
     def handshake(self):
         protocol.send_by_size(self.soc, self.crypto.get_public())
-        self.crypto.decrypt_aes_key(protocol.recv_by_size(self.soc), protocol.recv_by_size(self.soc)) # Get aes key and aes iv (for cbc) and give them to crypto object)
+        self.crypto.decrypt_aes_key(protocol.recv_by_size(self.soc), protocol.recv_by_size(self.soc))
+        # Get aes key and aes iv (for cbc) and give them to crypto object)
         self.send(protocol.ACK_START)
+
     def send(self, *msg):
         msg = protocol.format_message(msg)
         protocol.send_by_size(self.soc, self.crypto.encrypt(msg))
+
     def recv(self):
         rdata = protocol.recv_by_size(self.soc)
         decrypted_data = self.crypto.decrypt(rdata)
         return protocol.unformat_message(decrypted_data)
 
-
-        
     def business_logic(self):
         while self.connected:
             try:
                 request = self.recv()
                 opcode = request[0].decode()
                 if opcode == protocol.REQUEST_IMAGE:
-                    num = self.identify_num(request[1].decode(), request[2])
+                    num = self.identify_num(request[2])
                     self.send(protocol.IMAGE_IDENTIFIED, num)
+                if opcode == protocol.REQUEST_IMAGES:
+                    files = self.db_orm.get_all_images_files()
+                    msg_lst = self.build_return_images_msg(files)
+                    self.send(*msg_lst)
+                if opcode == protocol.REQUEST_IMAGES_BY_DIGIT:
+                    digit = request[1].decode()
+                    files = self.db_orm.get_image_by_digit_files(digit)
+                    msg_lst = self.build_return_images_msg(files)
+                    self.send(*msg_lst)
             except socket.timeout:
                 pass
 
-    def identify_num(self, picture_name, picture_content):
-        print(picture_name)
-        image_array = image_to_1d_array(picture_content)
+    @staticmethod
+    def build_return_images_msg(files):
+        file_amount = len(files)
+        msg_lst = []
+        for file in files:
+            msg_lst.append(file[0])
+            msg_lst.append(file[1])
+            msg_lst.append(file[2])
+            msg_lst.append(file[3])
+        msg_lst = [protocol.RETURN_IMAGES, file_amount] + msg_lst
+        return msg_lst
+
+    def identify_num(self, picture_content):
+        image_array = image_to_2d_array(picture_content)
         prediction = self.ai.forward(image_array)
+        class_index = np.argmax(prediction[0])
+        confidence = float(prediction[0][class_index])
+        with db_lock:
+            self.db_orm.process_and_store(picture_content, class_index, confidence)
 
-        print(prediction)
-        return str(np.argmax(prediction[0]))
+        return str(class_index)
 
 
-
-def image_to_1d_array(image_content):
+def image_to_2d_array(image_content):
     # Load the image from the file content
     image_file = io.BytesIO(image_content)
     image = Image.open(image_file)
@@ -131,7 +157,6 @@ def image_to_1d_array(image_content):
     image.save(downloads_path)
 
 
-
     # Convert the image to a NumPy array
     image_array = np.array(image)
 
@@ -139,11 +164,9 @@ def image_to_1d_array(image_content):
     image_array = image_array / 255.0
     image_array = image_array.reshape(1, 1, 28, 28)  # Reshape to (1, 1, 28, 28) for the model
 
-
-
-    print(image_array)
-
     return image_array
+
+
 class ServerCrypto:
     def __init__(self, rsa_key):
         self.rsa_key = rsa_key

@@ -63,6 +63,8 @@ class Client(threading.Thread):
         opcode = response[0].decode()
         if opcode == protocol.IMAGE_IDENTIFIED:
             self.gui_callback.display_result(response[1])
+        if opcode == protocol.RETURN_IMAGES:
+            self.gui_callback.display_images(response[1:])
 
     def send_file(self, file_path):
         self.queue_task(protocol.REQUEST_IMAGE, file_path)
@@ -73,6 +75,11 @@ class Client(threading.Thread):
             with open(args[0], 'rb') as file:
                 file_content = file.read()
                 self.send(protocol.REQUEST_IMAGE, file_name, file_content)
+        if task_code == protocol.REQUEST_IMAGES:
+            self.send(protocol.REQUEST_IMAGES)
+        if task_code == protocol.REQUEST_IMAGES_BY_DIGIT:
+            digit = args[0]
+            self.send(protocol.REQUEST_IMAGES_BY_DIGIT, digit)
         
     def is_connected(self):
         return self.connected
