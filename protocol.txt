@@ -16,5 +16,7 @@ services (examples):
 
 **CLIENT SEND FIRST MESSAGE AFTER HANDSHAKE**
 
+when the server sends images it will send 4 fields for each image: image id, the bytes, the digit and the confidence of the digit
+
 CLIENT MESSAGES:
 SERVER MESSAGES:

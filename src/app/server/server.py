@@ -113,21 +113,22 @@ class ClientHandler(threading.Thread):
                 if opcode == protocol.REQUEST_IMAGES_BY_DIGIT:
                     digit = request[1].decode()
                     files = self.db_orm.get_image_by_digit_files(digit)
+                    print(files)
                     msg_lst = self.build_return_images_msg(files)
+                    print(msg_lst)
                     self.send(*msg_lst)
             except socket.timeout:
                 pass
 
     @staticmethod
     def build_return_images_msg(files):
-        file_amount = len(files)
         msg_lst = []
         for file in files:
             msg_lst.append(file[0])
             msg_lst.append(file[1])
             msg_lst.append(file[2])
-            msg_lst.append(file[3])
-        msg_lst = [protocol.RETURN_IMAGES, file_amount] + msg_lst
+            msg_lst.append(str(file[3]))
+        msg_lst = [protocol.RETURN_IMAGES] + msg_lst
         return msg_lst
 
     def identify_num(self, picture_content):
@@ -136,7 +137,7 @@ class ClientHandler(threading.Thread):
         class_index = np.argmax(prediction[0])
         confidence = float(prediction[0][class_index])
         with db_lock:
-            self.db_orm.process_and_store(picture_content, class_index, confidence)
+            self.db_orm.process_and_store(picture_content, str(class_index), confidence)
 
         return str(class_index)
 

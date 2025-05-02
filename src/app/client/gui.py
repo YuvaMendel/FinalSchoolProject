@@ -5,37 +5,57 @@ from PIL import Image, ImageTk
 from tkinter import ttk
 
 class ClientGUI:
-    
+
     def __init__(self, client):
         self.root = tk.Tk()
         self.root.title("Client GUI")
         self.root.geometry("400x300")
         self.client = client
         self.load_icons()
-        self.connection_label = None  # To store the label
-        self.no_internet_img = None  # To store the "No Internet" image
-        self.connected_img = None  # To store the "Connected" image
-        self.load_images()  # Load the images when initializing
+        self.no_internet_img = None
+        self.connected_img = None
+        self.connection_label = None
+        self.status_frame = None
+        self.load_images()
         self.create_main_screen()
-        self.file_label = None  # Label to show the selected file path
-
+        self.file_label = None
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_gui)
 
     def load_icons(self):
-        browse_icon = Image.open("static/browse.png")
-        browse_icon = browse_icon.resize((20, 20))  # Resize to a good icon size
-        self.browse_icon = ImageTk.PhotoImage(browse_icon)  # Store as instance variable to prevent garbage collection
-        upload_icon = Image.open("static/upload.png")
-        upload_icon = upload_icon.resize((20, 15))  # Resize to a good icon size
-        self.upload_icon = ImageTk.PhotoImage(upload_icon)  # Store as instance variable to prevent garbage collection
-        exit_icon = Image.open("static/exit.png")
-        exit_icon = exit_icon.resize((20, 20))  # Resize to a good icon size
-        self.exit_icon = ImageTk.PhotoImage(exit_icon)  # Store as instance variable to prevent garbage collection
+        browse_icon = Image.open("static/browse.png").resize((20, 20))
+        self.browse_icon = ImageTk.PhotoImage(browse_icon)
+        upload_icon = Image.open("static/upload.png").resize((20, 15))
+        self.upload_icon = ImageTk.PhotoImage(upload_icon)
+        exit_icon = Image.open("static/exit.png").resize((20, 20))
+        self.exit_icon = ImageTk.PhotoImage(exit_icon)
+
+    def load_images(self):
+        no_net = Image.open("static/no_connection.png")
+        connected = Image.open("static/connected.png")
+        no_net.thumbnail((30, 30))
+        connected.thumbnail((30, 30))
+        self.no_internet_img = ImageTk.PhotoImage(no_net)
+        self.connected_img = ImageTk.PhotoImage(connected)
+
+    def update_connection_status(self):
+        # Only update if the connection label exists and hasn't been destroyed
+        if not hasattr(self, "connection_label") or self.connection_label is None:
+            return
+        if not self.connection_label.winfo_exists():
+            return
+
+        if not self.client.is_connected():
+            self.connection_label.config(image=self.no_internet_img)
+        else:
+            self.connection_label.config(image=self.connected_img)
+
+    def start_connection_polling(self, interval_ms=2000):
+        self.update_connection_status()
+        self.root.after(interval_ms, self.start_connection_polling)
 
     def create_main_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
-
-        self.update_connection_status()
 
         tk.Label(self.root, text="Main Menu", font=("Arial", 16)).pack(pady=20)
 
@@ -43,43 +63,25 @@ class ClientGUI:
                    command=self.open_upload_screen, width=20).pack(pady=5)
         ttk.Button(self.root, text="Browse", image=self.browse_icon, compound="left",
                    command=self.open_browse_screen, width=20).pack(pady=5)
-
         ttk.Button(self.root, text="Exit", image=self.exit_icon, compound="left",
                    command=self.exit_gui, width=20).pack(pady=5)
 
-    def load_images(self):
-        # Load images for "No Internet" and "Connected"
-        self.no_internet_img = Image.open("static/no_connection.png")  # Replace with your image path
-        self.connected_img = Image.open("static/connected.png")  # Replace with your image path
-        
-        # Resize images if necessary (optional)
-        self.no_internet_img.thumbnail((30, 30))
-        self.connected_img.thumbnail((30, 30))
-        
-        # Convert the images to Tkinter-compatible format
-        self.no_internet_img = ImageTk.PhotoImage(self.no_internet_img)
-        self.connected_img = ImageTk.PhotoImage(self.connected_img)
-    def update_connection_status(self):
-        if self.connection_label:
-            self.connection_label.destroy()
-        
-        if not self.client.is_connected():
-            # Display the "No Internet" image
-            self.connection_label = tk.Label(self.root, image=self.no_internet_img)
-            self.connection_label.place(x=5, y=5)  # Top-left corner (5 pixels from the top-left)
-        else:
-            # Display the "Connected" image
-            self.connection_label = tk.Label(self.root, image=self.connected_img)
-            self.connection_label.place(x=5, y=5)
+        self.status_frame = tk.Frame(self.root)
+        self.status_frame.place(x=5, y=5)
+
+        self.connection_label = tk.Label(self.status_frame)
+        self.connection_label.pack()
+
+        self.update_connection_status()
+
     def exit_gui(self):
         self.client.close()
         self.root.quit()
-    
-    
+
     def open_upload_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
-        
+
         tk.Label(self.root, text="Upload Image", font=("Arial", 16)).pack(pady=20)
 
         self.upload_button = tk.Button(self.root, text="Choose File", command=self.upload_image)
@@ -87,20 +89,16 @@ class ClientGUI:
 
         self.file_label = tk.Label(self.root, text="No file selected", wraplength=350)
         self.file_label.pack(pady=5)
-        
+
         self.submit_button = tk.Button(self.root, text="Send", command=self.send_image)
         self.submit_button.pack(pady=10)
-        
+
         tk.Button(self.root, text="Back", command=self.create_main_screen).pack(pady=20)
-    
+
     def upload_image(self):
         self.file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
         if self.file_path:
             self.file_label.config(text=f"Selected: {self.file_path}")
-
-    def start_connection_polling(self, interval_ms=2000):
-        self.update_connection_status()
-        self.root.after(interval_ms, self.start_connection_polling)
 
     def send_image(self):
         if hasattr(self, 'file_path') and self.file_path:
@@ -117,7 +115,6 @@ class ClientGUI:
 
         tk.Label(self.root, text="Browse Images", font=("Arial", 16)).pack(pady=10)
 
-        # Filter dropdown menu
         filter_frame = tk.Frame(self.root)
         filter_frame.pack(pady=10)
 
@@ -130,27 +127,123 @@ class ClientGUI:
                                             state="readonly")
         self.filter_dropdown.pack(side=tk.LEFT)
 
-        # Browse button
         tk.Button(self.root, text="Browse", command=self.browse_images, width=20).pack(pady=10)
-
-        # Back button
         tk.Button(self.root, text="Back", command=self.create_main_screen).pack(pady=10)
 
     def browse_images(self):
-        selected = self.filter_var.get()
-        messagebox.showinfo("Filter Selected", f"You selected: {selected}")
+        if self.client is not None:
+            digit = self.filter_var.get()
+            if digit == "All Images":
+                self.client.request_images()
+            else:
+                self.client.request_images(digit=digit)
+        else:
+            messagebox.showerror("Error", "Client not initialized.")
 
-    
+    def display_images(self, images):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        self.image_refs = []
+
+        # Layout setup
+        container = tk.Frame(self.root)
+        container.grid(row=0, column=0, sticky="nsew")
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+
+        tk.Label(container, text="Images", font=("Arial", 16)).grid(row=0, column=0, columnspan=2, pady=10)
+
+        canvas = tk.Canvas(container)
+        scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.grid(row=1, column=0, sticky="nsew")
+        scrollbar.grid(row=1, column=1, sticky="ns")
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        # Image grid layout
+        max_width, max_height = 100, 100
+        columns = 3
+        row = 0
+        col = 0
+
+        for idx, (img_id, img_pil, digit, confidence) in enumerate(images):
+            img_copy = img_pil.copy()
+            img_copy.thumbnail((max_width, max_height))
+            img_tk = ImageTk.PhotoImage(img_copy)
+            self.image_refs.append(img_tk)
+
+            short_id = img_id if len(img_id) <= 5 else img_id[:5] + "..."
+            info_text = f"{short_id} | {digit} | {confidence:.2f}"
+
+            frame = tk.Frame(scrollable_frame, padx=5, pady=5)
+            frame.grid(row=row, column=col, padx=5, pady=5, sticky="n")
+
+            canvas_img = tk.Canvas(
+                frame,
+                width=img_copy.width,
+                height=img_copy.height + 30,
+                highlightthickness=0
+            )
+            canvas_img.pack()
+
+            canvas_img.create_image(0, 0, image=img_tk, anchor="nw")
+
+            canvas_img.create_rectangle(
+                0,
+                img_copy.height,
+                img_copy.width,
+                img_copy.height + 30,
+                fill="black",
+                outline=""
+            )
+
+            canvas_img.create_text(
+                5,
+                img_copy.height + 15,
+                anchor="w",
+                text=info_text,
+                fill="white",
+                font=("Arial", 9, "bold")
+            )
+
+            col += 1
+            if col >= columns:
+                col = 0
+                row += 1
+
+        # Mouse wheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)  # Windows/Linux
+        canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # macOS
+        canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))  # macOS
+
+        # Back button below the scroll area
+        back_btn = tk.Button(self.root, text="Back", command=self.create_main_screen)
+        back_btn.grid(row=1, column=0, pady=10)
+
     def display_result(self, message):
         messagebox.showinfo("Models prediction:", message)
+
+    def handle_server_response(self, response):
+        self.display_result(response)
 
     def activate(self):
         self.start_connection_polling()
         self.root.mainloop()
 
-    def handle_server_response(self, response):
-        self.display_result(response)
-
 if __name__ == "__main__":
-    app = ClientGUI(None)
+    app = ClientGUI(Client())  # replace with actual Client init if needed
     app.activate()

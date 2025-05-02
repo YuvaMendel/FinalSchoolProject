@@ -9,6 +9,8 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from PIL import Image
+import io
 
 
 class Client(threading.Thread):
@@ -24,19 +26,13 @@ class Client(threading.Thread):
     def connect(self):
         try:
             self.sock.connect(self.dest)
-            self.connected = True
         except socket.error as e:
             print(e)
-            self.connected = False
             
     def run(self):
         self.connect()
         self.handshake()
         self.activate()
-
-
-        
-
         
     def handshake(self):
         rsa_public = protocol.recv_by_size(self.sock)
@@ -44,7 +40,9 @@ class Client(threading.Thread):
         protocol.send_by_size(self.sock, encrypted_aes_key)
         protocol.send_by_size(self.sock, aes_iv)
         return_message = self.recv()
-        print(return_message[0])
+        if return_message[0].decode() == protocol.ACK_START:
+            self.connected = True
+            print("Handshake successful")
 
     def queue_task(self, task_code ,*args):
         self.request_queue.put((task_code, args))
@@ -64,10 +62,36 @@ class Client(threading.Thread):
         if opcode == protocol.IMAGE_IDENTIFIED:
             self.gui_callback.display_result(response[1])
         if opcode == protocol.RETURN_IMAGES:
-            self.gui_callback.display_images(response[1:])
+            images = response[1:]
+            images = self.convert_image_string_to_tuple(images)
+
+            self.gui_callback.display_images(images)
+
+    @staticmethod
+    def convert_image_string_to_tuple(image_string_list):
+        """
+        converts the list of strings representing images to a list of tuples, that makes it easier to work with
+        """
+        img_lst = []
+        for i in range(0,len(image_string_list),4):
+            id = image_string_list[i].decode()
+            image_content = image_string_list[i+1]
+            image_file = io.BytesIO(image_content)
+            image = Image.open(image_file)
+            digit = image_string_list[i+2].decode()
+            confidence = float(image_string_list[i+3].decode())
+            img_lst.append((id, image, digit, confidence))
+        return img_lst
 
     def send_file(self, file_path):
         self.queue_task(protocol.REQUEST_IMAGE, file_path)
+
+    def request_images(self, digit=None):
+        if digit is None:
+            self.queue_task(protocol.REQUEST_IMAGES)
+        else:
+            self.queue_task(protocol.REQUEST_IMAGES_BY_DIGIT, digit)
+
 
     def handle_task(self, task_code, args):
         if task_code == protocol.REQUEST_IMAGE:

@@ -78,12 +78,4 @@ def __log(prefix, data, max_to_print=100):
     print(f"\n{prefix}({len(data)})>>>{data_to_log}")
 
 
-"""def send(self, *msg):
-    msg = format_message(msg)
-    send_by_size(self.soc, self.crypto.encrypt(msg))
 
-
-def recv(self):
-    rdata = recv_by_size(self.soc)
-    decrypted_data = self.crypto.decrypt(rdata)
-    return unformat_message(decrypted_data)"""
