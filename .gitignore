@@ -2,5 +2,5 @@
 .idea/
 **/data_files/
 **/saved_images/
-*.db
-*/model.pkl
+**.db
+**/model.pkl
