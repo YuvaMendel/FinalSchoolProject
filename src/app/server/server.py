@@ -17,7 +17,9 @@ import numpy as np
 import img_db_orm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from CNN.models import CNN
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'CNNall')))
+from CNNall.CNN import models
 
 import app.protocol as protocol
 

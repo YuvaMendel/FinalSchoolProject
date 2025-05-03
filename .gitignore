@@ -3,3 +3,4 @@
 **/data_files/
 **/saved_images/
 *.db
+*/model.pkl
