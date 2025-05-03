@@ -21,6 +21,8 @@ from CNN.models import CNN
 
 import app.protocol as protocol
 
+import cv2
+
 from keyboard import on_press_key
 
 
@@ -79,7 +81,12 @@ class ClientHandler(threading.Thread):
             self.db_orm.create_tables()
     
     def run(self):
-        self.handshake()
+        try:
+            self.handshake()
+        except Exception as e:
+            print(f"Handshake failed: {e}")
+            self.connected = False
+            return
         self.soc.settimeout(0.1)
         self.business_logic()
 
@@ -164,7 +171,28 @@ def is_valid_image(bytes_data):
     except (IOError, SyntaxError):
         return False
 
+
+def thicken_digit_pil(pil_img, kernel_size=(2, 2), iterations=1):
+    # Convert to grayscale NumPy array
+    img_np = np.array(pil_img.convert("L"))
+
+    # Binarize if not already (thresholding)
+    _, binary_img = cv2.threshold(img_np, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Create kernel and apply dilation
+    kernel = np.ones(kernel_size, np.uint8)
+    dilated = cv2.dilate(binary_img, kernel, iterations=iterations)
+
+    # Convert back to PIL Image
+    return Image.fromarray(dilated)
+
 def image_to_2d_array(image_content):
+    """
+    Convert the image content to a 2D NumPy array suitable for the model.
+    also does preprocessing on the image
+    :param image_content:
+    :return:
+    """
     # Load the image from the file content
     image_file = io.BytesIO(image_content)
     image = Image.open(image_file)
@@ -175,6 +203,9 @@ def image_to_2d_array(image_content):
     image = image.resize((28, 28))
     # Invert the image (255 - pixel value)
     image = Image.eval(image, lambda x: 255 - x)
+
+    image = thicken_digit_pil(image, kernel_size=(2, 2), iterations=1)
+
     # Save the grayscale image to the Downloads directory
     downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'try.png')
     image.save(downloads_path)

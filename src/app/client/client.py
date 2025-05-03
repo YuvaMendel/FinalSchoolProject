@@ -22,14 +22,14 @@ class Client(threading.Thread):
         self.connected = False
         self.crypto = ClientCrypto()
         self.gui_callback = gui_callback
-    
+
     def connect(self):
         self.sock.connect(self.dest)
         self.handshake()
 
     def run(self):
         self.activate()
-        
+
     def handshake(self):
         rsa_public = protocol.recv_by_size(self.sock)
         encrypted_aes_key, aes_iv = self.crypto.encrypted_key_iv(rsa_public)
@@ -42,7 +42,7 @@ class Client(threading.Thread):
 
     def queue_task(self, task_code ,*args):
         self.request_queue.put((task_code, args))
-        
+
     def activate(self):
         while self.connected:
             task = self.request_queue.get()
@@ -54,6 +54,7 @@ class Client(threading.Thread):
             except ConnectionError as e:
                 print(f"Connection error: {e}")
                 self.connected = False
+                self.gui_callback.display_result("Server disconnected", message_type="error")
                 break
             if to_recv:
                 try:
@@ -61,6 +62,7 @@ class Client(threading.Thread):
                 except Exception as e:
                     print(f"Error receiving data: {e}")
                     self.connected = False
+                    self.gui_callback.display_result("Server disconnected", message_type="error")
                     break
                 self.business_logic(response)
 
@@ -135,9 +137,9 @@ class Client(threading.Thread):
 
     def is_connected(self):
         return self.connected
-        
+
     def close(self):
-        
+
         self.connected = False
         self.request_queue.put(None)
         self.sock.close()
@@ -149,20 +151,20 @@ class Client(threading.Thread):
 
     def recv(self):
         return protocol.unformat_message(self.crypto.decrypt(protocol.recv_by_size(self.sock)))
-        
+
 
 class ClientCrypto:
     def __init__(self):
         self.aes_key = os.urandom(32)
         self.aes_iv = os.urandom(16)
-        
+
     def encrypted_key_iv(self, rsa_key):
         rsa_key = RSA.import_key(rsa_key)
         cipher_rsa = PKCS1_OAEP.new(rsa_key)
         encrypted_aes_key = cipher_rsa.encrypt(self.aes_key)
         aes_iv = self.aes_iv
         return encrypted_aes_key, aes_iv
-    
+
     def encrypt(self, plaintext):
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
         padded_data = pad(plaintext.encode(), AES.block_size)
