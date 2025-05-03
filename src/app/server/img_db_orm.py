@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import uuid
+import hashlib
 from PIL import Image
 import io
 
@@ -33,7 +34,8 @@ class ImagesORM:
             image_id TEXT PRIMARY KEY,
             digit TEXT,
             path TEXT,
-            confidence REAL
+            confidence REAL,
+            hash TEXT UNIQUE
         )
         ''')
         self.commit()
@@ -41,29 +43,40 @@ class ImagesORM:
 
     def save_image_file(self, image_bytes, max_size=256):
         img = Image.open(io.BytesIO(image_bytes))
-
         img = img.convert("RGB")
-
         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
 
         output = io.BytesIO()
         img.save(output, format='PNG')
         resized_bytes = output.getvalue()
+
+        # Compute SHA-256 hash of resized image
+        hash_val = hashlib.sha256(resized_bytes).hexdigest()
+
         image_id = str(uuid.uuid4())
         filename = f"{image_id}.png"
         path = os.path.join(self.image_dir, filename)
+
         with open(path, 'wb') as f:
             f.write(resized_bytes)
-        return image_id, path
 
-    def insert_image(self, image_id, digit, path, confidence):
+        return image_id, path, hash_val
+
+    def insert_image(self, image_id, digit, path, confidence, hash_val):
         self.open_DB()
-        self.cursor.execute('''
-        INSERT INTO Images (image_id, digit, path, confidence)
-        VALUES (?, ?, ?, ?)
-        ''', (image_id, digit, path, confidence))
 
-        # Prune database to last 100 entries by rowid
+        # Check for duplicate based on hash
+        self.cursor.execute('SELECT 1 FROM Images WHERE hash = ?', (hash_val,))
+        if self.cursor.fetchone():
+            self.close_DB()
+            return  # Duplicate found, skip insertion
+
+        self.cursor.execute('''
+        INSERT INTO Images (image_id, digit, path, confidence, hash)
+        VALUES (?, ?, ?, ?, ?)
+        ''', (image_id, digit, path, confidence, hash_val))
+
+        # Keep only the most recent `image_limit` entries
         self.cursor.execute('''
         DELETE FROM Images
         WHERE image_id NOT IN (
@@ -77,7 +90,6 @@ class ImagesORM:
         self.close_DB()
 
     def delete_old_files(self):
-
         self.open_DB()
         self.cursor.execute('SELECT image_id, path FROM Images ORDER BY rowid DESC LIMIT ?', (image_limit,))
         rows = self.cursor.fetchall()
@@ -109,15 +121,13 @@ class ImagesORM:
             self.close_DB()
 
     def process_and_store(self, image_bytes, digit, confidence):
-        image_id, path = self.save_image_file(image_bytes)
-        self.insert_image(image_id, digit, path, confidence)
+        image_id, path, hash_val = self.save_image_file(image_bytes)
+        self.insert_image(image_id, digit, path, confidence, hash_val)
         self.delete_old_files()
-
-
 
     def get_all_images_files(self):
         self.open_DB()
-        self.cursor.execute('SELECT * FROM Images ORDER BY rowid DESC')
+        self.cursor.execute('SELECT image_id, digit, path, confidence FROM Images ORDER BY rowid DESC')
         rows = self.cursor.fetchall()
         self.close_DB()
         files = get_files_by_rows(rows)
@@ -125,7 +135,7 @@ class ImagesORM:
 
     def get_image_by_digit_files(self, digit):
         self.open_DB()
-        self.cursor.execute('SELECT * FROM Images WHERE digit = ?', (digit,))
+        self.cursor.execute('SELECT image_id, digit, path, confidence FROM Images WHERE digit = ?', (digit,))
         rows = self.cursor.fetchall()
         self.close_DB()
         files = get_files_by_rows(rows)
