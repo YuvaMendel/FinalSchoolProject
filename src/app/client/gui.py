@@ -173,6 +173,7 @@ class ClientGUI:
 
         # Image grid layout
         max_width, max_height = 100, 100
+        min_canvas_width = 100
         columns = 3
         row = 0
         col = 0
@@ -189,25 +190,30 @@ class ClientGUI:
             frame = tk.Frame(scrollable_frame, padx=5, pady=5)
             frame.grid(row=row, column=col, padx=5, pady=5, sticky="n")
 
+            canvas_width = max(min_canvas_width, img_copy.width)
+
             canvas_img = tk.Canvas(
                 frame,
-                width=img_copy.width,
+                width=canvas_width,
                 height=img_copy.height + 30,
                 highlightthickness=0
             )
             canvas_img.pack()
 
+            # Draw image (top-left aligned)
             canvas_img.create_image(0, 0, image=img_tk, anchor="nw")
 
+            # Draw footer bar (full width)
             canvas_img.create_rectangle(
                 0,
                 img_copy.height,
-                img_copy.width,
+                canvas_width,
                 img_copy.height + 30,
                 fill="black",
                 outline=""
             )
 
+            # Draw metadata text
             canvas_img.create_text(
                 5,
                 img_copy.height + 15,

@@ -1,6 +1,8 @@
 import sqlite3
 import os
 import uuid
+from PIL import Image
+import io
 
 image_limit = 100
 
@@ -37,12 +39,21 @@ class ImagesORM:
         self.commit()
         self.close_DB()
 
-    def save_image_file(self, image_bytes):
+    def save_image_file(self, image_bytes, max_size=256):
+        img = Image.open(io.BytesIO(image_bytes))
+
+        img = img.convert("RGB")
+
+        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+
+        output = io.BytesIO()
+        img.save(output, format='PNG')
+        resized_bytes = output.getvalue()
         image_id = str(uuid.uuid4())
-        filename = f"{image_id}.hif"  # hif = hidden image format (basically just a random image)
+        filename = f"{image_id}.png"
         path = os.path.join(self.image_dir, filename)
         with open(path, 'wb') as f:
-            f.write(image_bytes)
+            f.write(resized_bytes)
         return image_id, path
 
     def insert_image(self, image_id, digit, path, confidence):
