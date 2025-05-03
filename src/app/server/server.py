@@ -115,6 +115,8 @@ class ClientHandler(threading.Thread):
                 except ValueError:
                     # Handle the case where the data is not valid
                     request = b''
+                except ConnectionResetError:
+                    request = b''
                 if request == b'':
                     print("Client disconnected")
                     self.connected = False
