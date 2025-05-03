@@ -77,5 +77,3 @@ def __log(prefix, data, max_to_print=100):
             pass
     print(f"\n{prefix}({len(data)})>>>{data_to_log}")
 
-
-
