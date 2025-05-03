@@ -24,14 +24,10 @@ class Client(threading.Thread):
         self.gui_callback = gui_callback
     
     def connect(self):
-        try:
-            self.sock.connect(self.dest)
-        except socket.error as e:
-            print(e)
-            
-    def run(self):
-        self.connect()
+        self.sock.connect(self.dest)
         self.handshake()
+
+    def run(self):
         self.activate()
         
     def handshake(self):
@@ -53,9 +49,20 @@ class Client(threading.Thread):
             if task is None:
                 break
             task_code, args = task
-            self.handle_task(task_code, args)
-            response = self.recv()
-            self.business_logic(response)
+            try:
+                to_recv = self.handle_task(task_code, args)
+            except ConnectionError as e:
+                print(f"Connection error: {e}")
+                self.connected = False
+                break
+            if to_recv:
+                try:
+                    response = self.recv()
+                except Exception as e:
+                    print(f"Error receiving data: {e}")
+                    self.connected = False
+                    break
+                self.business_logic(response)
 
     def business_logic(self, response):
         opcode = response[0].decode()
@@ -66,6 +73,13 @@ class Client(threading.Thread):
             images = self.convert_image_string_to_tuple(images)
 
             self.gui_callback.display_images(images)
+        if opcode == protocol.ERROR:
+            error_code = response[1].decode()
+            if error_code in protocol.error_messages:
+                error_message = protocol.error_messages[error_code]
+            else:
+                error_message = "Unknown error"
+            self.gui_callback.display_result(error_message, message_type="error")
 
     @staticmethod
     def convert_image_string_to_tuple(image_string_list):
@@ -92,19 +106,33 @@ class Client(threading.Thread):
         else:
             self.queue_task(protocol.REQUEST_IMAGES_BY_DIGIT, digit)
 
-
     def handle_task(self, task_code, args):
+        """
+        Handle the task based on the task code and arguments.
+        :param task_code: a string representing the task code
+        :param args: the arguments for the task
+        :return: should the client recv a message
+        """
         if task_code == protocol.REQUEST_IMAGE:
             file_name = args[0].split('/')[-1]
+            if not os.path.exists(args[0]):
+                self.gui_callback.display_result(f"File {args[0]} does not exist.", message_type="error")
+                return False
             with open(args[0], 'rb') as file:
                 file_content = file.read()
-                self.send(protocol.REQUEST_IMAGE, file_name, file_content)
+            if len(file_content) > protocol.MAX_FILE_SIZE:
+                self.gui_callback.display_result(f"File {args[0]} is too large", message_type="error")
+                return False
+
+            self.send(protocol.REQUEST_IMAGE, file_name, file_content)
         if task_code == protocol.REQUEST_IMAGES:
             self.send(protocol.REQUEST_IMAGES)
         if task_code == protocol.REQUEST_IMAGES_BY_DIGIT:
             digit = args[0]
             self.send(protocol.REQUEST_IMAGES_BY_DIGIT, digit)
-        
+        return True
+
+
     def is_connected(self):
         return self.connected
         

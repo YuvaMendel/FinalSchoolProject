@@ -1,16 +1,17 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
-from client import Client
+from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
-from tkinter import ttk
+from client import Client
+
 
 class ClientGUI:
 
-    def __init__(self, client):
+    def __init__(self):
         self.root = tk.Tk()
+        self.exit = False
         self.root.title("Client GUI")
         self.root.geometry("400x300")
-        self.client = client
+        self.client = None
         self.load_icons()
         self.no_internet_img = None
         self.connected_img = None
@@ -22,12 +23,9 @@ class ClientGUI:
         self.root.protocol("WM_DELETE_WINDOW", self.exit_gui)
 
     def load_icons(self):
-        browse_icon = Image.open("static/browse.png").resize((20, 20))
-        self.browse_icon = ImageTk.PhotoImage(browse_icon)
-        upload_icon = Image.open("static/upload.png").resize((20, 15))
-        self.upload_icon = ImageTk.PhotoImage(upload_icon)
-        exit_icon = Image.open("static/exit.png").resize((20, 20))
-        self.exit_icon = ImageTk.PhotoImage(exit_icon)
+        self.browse_icon = ImageTk.PhotoImage(Image.open("static/browse.png").resize((20, 20)))
+        self.upload_icon = ImageTk.PhotoImage(Image.open("static/upload.png").resize((20, 15)))
+        self.exit_icon = ImageTk.PhotoImage(Image.open("static/exit.png").resize((20, 20)))
 
     def load_images(self):
         no_net = Image.open("static/no_connection.png")
@@ -38,13 +36,12 @@ class ClientGUI:
         self.connected_img = ImageTk.PhotoImage(connected)
 
     def update_connection_status(self):
-        # Only update if the connection label exists and hasn't been destroyed
         if not hasattr(self, "connection_label") or self.connection_label is None:
             return
         if not self.connection_label.winfo_exists():
             return
 
-        if not self.client.is_connected():
+        if self.client is None or not self.client.is_connected():
             self.connection_label.config(image=self.no_internet_img)
         else:
             self.connection_label.config(image=self.connected_img)
@@ -75,7 +72,9 @@ class ClientGUI:
         self.update_connection_status()
 
     def exit_gui(self):
-        self.client.close()
+        if self.client is not None:
+            self.client.close()
+        self.exit = True
         self.root.quit()
 
     def open_upload_screen(self):
@@ -146,7 +145,6 @@ class ClientGUI:
 
         self.image_refs = []
 
-        # Layout setup
         container = tk.Frame(self.root)
         container.grid(row=0, column=0, sticky="nsew")
         self.root.grid_rowconfigure(0, weight=1)
@@ -158,10 +156,10 @@ class ClientGUI:
         scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas)
 
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        def update_scrollregion_delayed():
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        scrollable_frame.bind("<Configure>", lambda e: self.root.after(100, update_scrollregion_delayed))
 
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -171,7 +169,6 @@ class ClientGUI:
         container.grid_rowconfigure(1, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        # Image grid layout
         max_width, max_height = 100, 100
         min_canvas_width = 100
         columns = 3
@@ -192,64 +189,43 @@ class ClientGUI:
 
             canvas_width = max(min_canvas_width, img_copy.width)
 
-            canvas_img = tk.Canvas(
-                frame,
-                width=canvas_width,
-                height=img_copy.height + 30,
-                highlightthickness=0
-            )
+            canvas_img = tk.Canvas(frame, width=canvas_width, height=img_copy.height + 30, highlightthickness=0)
             canvas_img.pack()
-
-            # Draw image (top-left aligned)
             canvas_img.create_image(0, 0, image=img_tk, anchor="nw")
-
-            # Draw footer bar (full width)
-            canvas_img.create_rectangle(
-                0,
-                img_copy.height,
-                canvas_width,
-                img_copy.height + 30,
-                fill="black",
-                outline=""
-            )
-
-            # Draw metadata text
-            canvas_img.create_text(
-                5,
-                img_copy.height + 15,
-                anchor="w",
-                text=info_text,
-                fill="white",
-                font=("Arial", 9, "bold")
-            )
+            canvas_img.create_rectangle(0, img_copy.height, canvas_width, img_copy.height + 30, fill="black", outline="")
+            canvas_img.create_text(5, img_copy.height + 15, anchor="w", text=info_text,
+                                   fill="white", font=("Arial", 9, "bold"))
 
             col += 1
             if col >= columns:
                 col = 0
                 row += 1
 
-        # Mouse wheel scrolling
         def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            if event.delta:
+                canvas.yview_scroll(int(-1 * (event.delta / 60)), "units")
 
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)  # Windows/Linux
-        canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # macOS
-        canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))  # macOS
+        def delayed_mousewheel_bind():
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
-        # Back button below the scroll area
+        def delayed_mousewheel_unbind():
+            canvas.unbind_all("<MouseWheel>")
+
+        scrollable_frame.bind("<Enter>", lambda e: self.root.after(150, delayed_mousewheel_bind))
+        scrollable_frame.bind("<Leave>", lambda e: self.root.after(0, delayed_mousewheel_unbind))
+
         back_btn = tk.Button(self.root, text="Back", command=self.create_main_screen)
         back_btn.grid(row=1, column=0, pady=10)
 
-    def display_result(self, message):
-        messagebox.showinfo("Models prediction:", message)
+    def display_result(self, message, message_type="result"):
+        if message_type == "result":
+            messagebox.showinfo("Result", message)
+        elif message_type == "error":
+            messagebox.showerror("Error", message)
 
     def handle_server_response(self, response):
         self.display_result(response)
 
     def activate(self):
-        self.start_connection_polling()
+        self.root.after(0, self.start_connection_polling)
         self.root.mainloop()
-
-if __name__ == "__main__":
-    app = ClientGUI(Client())  # replace with actual Client init if needed
-    app.activate()

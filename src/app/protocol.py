@@ -3,6 +3,7 @@ import base64
 HOST = "127.0.0.1"  # Server address
 PORT = 6627         # Communication port
 SIZE_OF_SIZE = 7   # Size of the size field in the beginning of the message
+MAX_FILE_SIZE = 3000000  # Maximum file size (1MB)
 SEPERATOR = '~'     # Seperator for the fields of the message
 # Message Codes (OPCODES)
 ACK_START = 'GKSC'  # server got key from client and is ready to start communication
@@ -13,6 +14,10 @@ REQUEST_IMAGES = 'RIHP'  # client requests images that have been recognized (fro
 REQUEST_IMAGES_BY_DIGIT = 'RIHD'  # client requests images that have been recognized by digit
 RETURN_IMAGES = 'RIHL'  # server returns images from database
 
+error_messages = {"1": "Image format not recognized/supported",
+                  "2": "File is too large",
+                  "3": "Invalid request",
+                  "4": "General_error"}
 
 DEBUG_FLAG = True
 

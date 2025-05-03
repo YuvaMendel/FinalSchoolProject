@@ -1,14 +1,32 @@
 import client
 import gui
+from time import sleep
+import threading
 
 
 def main():
-    connection = client.Client("127.0.0.1", 6627)
-    connection.start()
-    app = gui.ClientGUI(connection)
-    connection.gui_callback = app
+    finished = False
+    app = gui.ClientGUI()
+
+    def start_client():
+        nonlocal finished
+        while not finished:
+            connection = client.Client("127.0.0.1", 6627)
+            try:
+                connection.connect()
+            except Exception as e:
+                print(f"could not connect to server: {e}")
+                sleep(0.5)
+                continue
+
+            connection.start()
+
+            connection.gui_callback = app
+            app.client = connection
+            connection.join()
+            finished = app.exit
+    threading.Thread(target=start_client, daemon=True).start()
     app.activate()
-    connection.join()
 
 
 if __name__ == '__main__':

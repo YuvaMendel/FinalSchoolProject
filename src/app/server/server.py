@@ -101,22 +101,37 @@ class ClientHandler(threading.Thread):
     def business_logic(self):
         while self.connected:
             try:
-                request = self.recv()
+                try:
+                    request = self.recv()
+                except ValueError:
+                    # Handle the case where the data is not valid
+                    request = b''
+                if request == b'':
+                    print("Client disconnected")
+                    self.connected = False
+                    continue
                 opcode = request[0].decode()
+                to_send = (protocol.ERROR, "4")
                 if opcode == protocol.REQUEST_IMAGE:
-                    num = self.identify_num(request[2])
-                    self.send(protocol.IMAGE_IDENTIFIED, num)
-                if opcode == protocol.REQUEST_IMAGES:
+                    # request[1] is the image name
+                    # request[2] is the image content
+                    if len(request) != 3:
+                        to_send = (protocol.ERROR, "3")
+                    elif len(request[2]) > protocol.MAX_FILE_SIZE:
+                        to_send = (protocol.ERROR, "2")
+                    elif not is_valid_image(request[2]):
+                        to_send = (protocol.ERROR, "1")
+                    else:
+                        num = self.identify_num(request[2])
+                        to_send = (protocol.IMAGE_IDENTIFIED, str(num))
+                elif opcode == protocol.REQUEST_IMAGES:
                     files = self.db_orm.get_all_images_files()
-                    msg_lst = self.build_return_images_msg(files)
-                    self.send(*msg_lst)
-                if opcode == protocol.REQUEST_IMAGES_BY_DIGIT:
+                    to_send = self.build_return_images_msg(files)
+                elif opcode == protocol.REQUEST_IMAGES_BY_DIGIT:
                     digit = request[1].decode()
                     files = self.db_orm.get_image_by_digit_files(digit)
-                    print(files)
-                    msg_lst = self.build_return_images_msg(files)
-                    print(msg_lst)
-                    self.send(*msg_lst)
+                    to_send = self.build_return_images_msg(files)
+                self.send(*to_send)
             except socket.timeout:
                 pass
 
@@ -141,6 +156,13 @@ class ClientHandler(threading.Thread):
 
         return str(class_index)
 
+def is_valid_image(bytes_data):
+    try:
+        with Image.open(io.BytesIO(bytes_data)) as img:
+            img.verify()  # Verifies it is an image, doesn't decode full data
+        return True
+    except (IOError, SyntaxError):
+        return False
 
 def image_to_2d_array(image_content):
     # Load the image from the file content
