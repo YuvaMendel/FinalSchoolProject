@@ -140,6 +140,8 @@ class ClientGUI:
             messagebox.showerror("Error", "Client not initialized.")
 
     def display_images(self, images):
+        self.current_images = images  # Store for later use in ZIP
+
         for widget in self.root.winfo_children():
             widget.destroy()
 
@@ -192,7 +194,8 @@ class ClientGUI:
             canvas_img = tk.Canvas(frame, width=canvas_width, height=img_copy.height + 30, highlightthickness=0)
             canvas_img.pack()
             canvas_img.create_image(0, 0, image=img_tk, anchor="nw")
-            canvas_img.create_rectangle(0, img_copy.height, canvas_width, img_copy.height + 30, fill="black", outline="")
+            canvas_img.create_rectangle(0, img_copy.height, canvas_width, img_copy.height + 30, fill="black",
+                                        outline="")
             canvas_img.create_text(5, img_copy.height + 15, anchor="w", text=info_text,
                                    fill="white", font=("Arial", 9, "bold"))
 
@@ -201,21 +204,67 @@ class ClientGUI:
                 col = 0
                 row += 1
 
+        # Smooth scroll binding (only while hovering)
         def _on_mousewheel(event):
-            if event.delta:
-                canvas.yview_scroll(int(-1 * (event.delta / 60)), "units")
+            try:
+                if canvas.winfo_exists():
+                    canvas.yview_scroll(int(-1 * (event.delta / 60)), "units")
+            except Exception:
+                pass
 
-        def delayed_mousewheel_bind():
-            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        def bind_scroll():
+            self.root.bind_all("<MouseWheel>", _on_mousewheel)
 
-        def delayed_mousewheel_unbind():
-            canvas.unbind_all("<MouseWheel>")
+        def unbind_scroll():
+            self.root.unbind_all("<MouseWheel>")
 
-        scrollable_frame.bind("<Enter>", lambda e: self.root.after(150, delayed_mousewheel_bind))
-        scrollable_frame.bind("<Leave>", lambda e: self.root.after(0, delayed_mousewheel_unbind))
+        bind_scroll()
+        self.root.bind("<Destroy>", lambda e: unbind_scroll())
 
-        back_btn = tk.Button(self.root, text="Back", command=self.create_main_screen)
-        back_btn.grid(row=1, column=0, pady=10)
+        # === Buttons at bottom ===
+        btn_frame = tk.Frame(self.root)
+        btn_frame.grid(row=1, column=0, pady=10)
+
+        tk.Button(btn_frame, text="Back", command=lambda: [unbind_scroll(), self.create_main_screen()]).pack(
+            side=tk.LEFT, padx=10)
+        tk.Button(btn_frame, text="Download ZIP", command=self.download_zip).pack(side=tk.RIGHT, padx=10)
+
+    def download_zip(self):
+        import zipfile, io, csv
+        from tkinter import filedialog
+
+        if not hasattr(self, "current_images") or not self.current_images:
+            messagebox.showinfo("Info", "No images to export.")
+            return
+
+        zip_path = filedialog.asksaveasfilename(
+            defaultextension=".zip",
+            filetypes=[("ZIP files", "*.zip")],
+            title="Save ZIP Archive"
+        )
+
+        if not zip_path:
+            return
+
+        try:
+            with zipfile.ZipFile(zip_path, 'w') as zipf:
+                csv_buffer = io.StringIO()
+                csv_writer = csv.writer(csv_buffer)
+                csv_writer.writerow(["filename", "label", "confidence"])
+
+                for img_id, img_pil, digit, confidence in self.current_images:
+                    filename = f"{img_id}.png"
+                    img_bytes = io.BytesIO()
+                    img_pil.save(img_bytes, format="PNG")
+                    img_bytes.seek(0)
+                    zipf.writestr(f"images/{filename}", img_bytes.read())
+                    csv_writer.writerow([filename, digit, f"{confidence:.4f}"])
+
+                zipf.writestr("labels.csv", csv_buffer.getvalue())
+
+            messagebox.showinfo("Success", f"ZIP file saved to:\n{zip_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save ZIP: {str(e)}")
 
     def display_result(self, message, message_type="result"):
         if message_type == "result":

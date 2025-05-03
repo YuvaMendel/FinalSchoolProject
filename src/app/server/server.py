@@ -75,7 +75,7 @@ class ClientHandler(threading.Thread):
         self.soc = soc
 
         self.connected = True
-        self.ai = pickle.load(open('model.pkl', 'rb')) # Load the model
+        self.ai = pickle.load(open('main_model.pkl', 'rb')) # Load the model
         self.db_orm = img_db_orm.ImagesORM()
         with db_lock:
             self.db_orm.create_tables()
