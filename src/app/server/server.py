@@ -133,8 +133,8 @@ class ClientHandler(threading.Thread):
                     elif not is_valid_image(request[2]):
                         to_send = (protocol.ERROR, "1")
                     else:
-                        num = self.identify_num(request[2])
-                        to_send = (protocol.IMAGE_IDENTIFIED, str(num))
+                        num, confidence = self.identify_num(request[2])
+                        to_send = (protocol.IMAGE_IDENTIFIED, num, str(confidence))
                 elif opcode == protocol.REQUEST_IMAGES:
                     files = self.db_orm.get_all_images_files()
                     to_send = self.build_return_images_msg(files)
@@ -165,7 +165,7 @@ class ClientHandler(threading.Thread):
         with db_lock:
             self.db_orm.process_and_store(picture_content, str(class_index), confidence)
 
-        return str(class_index)
+        return str(class_index), confidence
 
 def is_valid_image(bytes_data):
     try:

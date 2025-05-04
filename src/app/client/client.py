@@ -69,7 +69,7 @@ class Client(threading.Thread):
     def business_logic(self, response):
         opcode = response[0].decode()
         if opcode == protocol.IMAGE_IDENTIFIED:
-            self.gui_callback.display_result(response[1])
+            self.gui_callback.display_result("The server predicts: " + response[1].decode() + "\nwith confidence: " + response[2].decode())
         if opcode == protocol.RETURN_IMAGES:
             images = response[1:]
             images = self.convert_image_string_to_tuple(images)

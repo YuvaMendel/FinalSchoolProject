@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import zipfile, io, csv
 from PIL import Image, ImageTk
 from client import Client
 
@@ -230,8 +231,7 @@ class ClientGUI:
         tk.Button(btn_frame, text="Download ZIP", command=self.download_zip).pack(side=tk.RIGHT, padx=10)
 
     def download_zip(self):
-        import zipfile, io, csv
-        from tkinter import filedialog
+
 
         if not hasattr(self, "current_images") or not self.current_images:
             messagebox.showinfo("Info", "No images to export.")
