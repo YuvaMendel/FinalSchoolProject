@@ -52,6 +52,7 @@ class ClientGUI:
         self.root.after(interval_ms, self.start_connection_polling)
 
     def create_main_screen(self):
+        self.file_path = None
         for widget in self.root.winfo_children():
             widget.destroy()
 
