@@ -2,16 +2,20 @@ import client
 import gui
 from time import sleep
 import threading
+from sys import argv
 
 
 def main():
+    dest_ip = "127.0.0.1"
+    if len(argv) > 1:
+        dest_ip = argv[1]
     finished = False
     app = gui.ClientGUI()
 
     def start_client():
         nonlocal finished
         while not finished:
-            connection = client.Client("127.0.0.1", 6627)
+            connection = client.Client(dest_ip)
             try:
                 connection.connect()
             except Exception as e:

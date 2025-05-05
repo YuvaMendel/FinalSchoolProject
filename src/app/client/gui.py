@@ -10,7 +10,7 @@ class ClientGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.exit = False
-        self.root.title("Client GUI")
+        self.root.title("DigitNet Client")
         self.root.geometry("400x300")
         self.client = None
         self.load_icons()

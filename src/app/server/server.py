@@ -38,7 +38,7 @@ class Server:
         self.rsa_key = RSA.generate(2048)
         self.online = False
         self.sock = socket.socket()
-        self.sock.bind(('127.0.0.1', protocol.PORT))
+        self.sock.bind(('0.0.0.0', protocol.PORT))
         self.sock.listen(10)
         self.clients = []
         self.sock.settimeout(0.1)

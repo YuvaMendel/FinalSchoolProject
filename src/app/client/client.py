@@ -14,7 +14,7 @@ import io
 
 
 class Client(threading.Thread):
-    def __init__(self, dest_ip, dest_port, gui_callback=None):
+    def __init__(self, dest_ip, dest_port=protocol.PORT, gui_callback=None):
         super().__init__()
         self.dest = (dest_ip, dest_port)
         self.sock = socket.socket()
