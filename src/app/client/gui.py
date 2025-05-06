@@ -74,9 +74,10 @@ class ClientGUI:
         self.update_connection_status()
 
     def exit_gui(self):
+        self.exit = True
         if self.client is not None:
             self.client.close()
-        self.exit = True
+
         self.root.quit()
 
     def open_upload_screen(self):
