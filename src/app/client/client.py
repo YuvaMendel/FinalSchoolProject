@@ -59,20 +59,49 @@ class Client(threading.Thread):
             if to_recv:
                 try:
                     response = self.recv()
+                    self.business_logic(response)
                 except Exception as e:
                     print(f"Error receiving data: {e}")
                     self.connected = False
                     self.gui_callback.display_result("Server disconnected", message_type="error")
                     break
-                self.business_logic(response)
+
+    def recv_files_process(self, amount_of_files):
+        """
+        This function is used to receive files from the server
+        :param amount_of_files: the number of files to receive
+        :return: None
+        """
+        images = []
+        finished_process = False
+        for i in range(amount_of_files):
+            msg = self.recv()
+            opcode = msg[0].decode()
+            if opcode == protocol.RETURN_FILES_END:
+                finished_process = True
+                break
+            elif opcode == protocol.IMAGE_FILE_RETURN:
+                image_list = msg[1:]
+                id = image_list[0].decode()
+                image_content = image_list[1]
+                image_file = io.BytesIO(image_content)
+                image = Image.open(image_file)
+                digit = image_list[2].decode()
+                confidence = float(image_list[3].decode())
+                images.append((id, image, digit, confidence))
+        if not finished_process:
+            msg = self.recv()
+            opcode = msg[0].decode()
+            if opcode == protocol.RETURN_FILES_END:
+                finished_process = True
+        return images
 
     def business_logic(self, response):
         opcode = response[0].decode()
         if opcode == protocol.IMAGE_IDENTIFIED:
             self.gui_callback.display_result("The server predicts: " + response[1].decode() + "\nwith confidence: " + response[2].decode())
         if opcode == protocol.RETURN_IMAGES:
-            images = response[1:]
-            images = self.convert_image_string_to_tuple(images)
+            images = self.recv_files_process(int(response[1].decode()))
 
             self.gui_callback.display_images(images)
         if opcode == protocol.ERROR:
@@ -162,7 +191,6 @@ class Client(threading.Thread):
                 return False
             self.send(protocol.LOG_IN_REQUEST, username, password)
         return True
-
 
     def is_connected(self):
         return self.connected

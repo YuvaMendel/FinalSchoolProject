@@ -15,12 +15,13 @@ REQUEST_IMAGES_BY_DIGIT = 'RIHD'  # client requests images that have been recogn
 
 RETURN_IMAGES = 'RIHL'  # server returns images from database (starts return process)
 IMAGE_FILE_RETURN = 'RILF'  # returns a image file (the "RETURN_IMAGES" send the amount of "IMAGE_FILE_RETURN" messages)
+RETURN_FILES_END = 'RIHE'  # end of the return process
 
 SIGN_UP_REQUEST = 'CRSU'  # client requests to  sign up
 SIGN_UP_APPROVED = 'CRSA'  # server approved the sign up request
 SIGN_UP_DENIED = 'CRSD'  # server denied the sign up request
 LOG_IN_REQUEST = 'CRSI'  # client requests to sign in
-LOG_IN_APPROVED = 'CRSA'  # server approved the sign in request
+LOG_IN_APPROVED = 'CRLA'  # server approved the sign in request
 LOG_IN_DENIED = 'CRFD'  # server denied the sign in request
 
 

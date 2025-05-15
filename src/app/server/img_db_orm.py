@@ -175,7 +175,7 @@ class ImagesORM:
         self.cursor.execute('SELECT image_id, digit, path, confidence FROM Images ORDER BY rowid DESC')
         rows = self.cursor.fetchall()
         self.close_DB()
-        files = get_files_by_rows(rows)
+        files = Files(rows)
         return files
 
     def get_image_by_digit_files(self, digit):
@@ -183,7 +183,7 @@ class ImagesORM:
         self.cursor.execute('SELECT image_id, digit, path, confidence FROM Images WHERE digit = ?', (digit,))
         rows = self.cursor.fetchall()
         self.close_DB()
-        files = get_files_by_rows(rows)
+        files = Files(rows)
         return files
 
 
@@ -196,3 +196,27 @@ def get_files_by_rows(rows):
                 image_bytes = f.read()
             files.append((image_id, image_bytes, digit, confidence))
     return files
+
+
+class Files:
+    def __init__(self, rows):
+        self.rows = rows
+        self.index = 0
+
+    def __len__(self):
+        return len(self.rows)
+
+    def __iter__(self):
+        self.index = 0
+        return self
+
+    def __next__(self):
+        if self.index >= len(self.rows):
+            raise StopIteration
+        file_path = self.rows[self.index][2]
+        self.index += 1
+        if os.path.exists(file_path):
+            with open(file_path, 'rb') as f:
+                image_bytes = f.read()
+            return self.rows[self.index - 1][0], image_bytes, self.rows[self.index - 1][1], self.rows[self.index - 1][3]
+        return None

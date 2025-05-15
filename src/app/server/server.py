@@ -137,11 +137,14 @@ class ClientHandler(threading.Thread):
                         to_send = (protocol.IMAGE_IDENTIFIED, num, str(confidence))
                 elif opcode == protocol.REQUEST_IMAGES:
                     files = self.db_orm.get_all_images_files()
-                    to_send = self.build_return_images_msg(files)
+                    # send the images
+                    self.send_files_process(files)
+                    to_send = protocol.RETURN_FILES_END
                 elif opcode == protocol.REQUEST_IMAGES_BY_DIGIT:
                     digit = request[1].decode()
                     files = self.db_orm.get_image_by_digit_files(digit)
-                    to_send = self.build_return_images_msg(files)
+                    self.send_files_process(files)
+                    to_send = protocol.RETURN_FILES_END
                 elif opcode == protocol.SIGN_UP_REQUEST:
                     username = request[1].decode()
                     password = request[2].decode()
@@ -162,6 +165,24 @@ class ClientHandler(threading.Thread):
                 self.send(*to_send)
             except socket.timeout:
                 pass
+
+    def send_files_process(self, files):
+        """
+        Send the files to the client.
+        :param files: the files to send
+        :return:
+        """
+        self.send(protocol.RETURN_IMAGES, str(len(files)))
+        # send the images
+        for file in files:
+            if file is None:
+                continue
+            image_id, image_bytes, digit, confidence = file
+            if image_bytes is None:
+                continue
+            if len(image_bytes) > protocol.MAX_FILE_SIZE:
+                continue
+            self.send(protocol.IMAGE_FILE_RETURN, image_id, image_bytes, digit, str(confidence))
 
     @staticmethod
     def build_return_images_msg(files):
