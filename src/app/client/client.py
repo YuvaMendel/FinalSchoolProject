@@ -82,6 +82,15 @@ class Client(threading.Thread):
             else:
                 error_message = "Unknown error"
             self.gui_callback.display_result(error_message, message_type="error")
+        if opcode == protocol.LOG_IN_APPROVED:
+            self.gui_callback.gui_set_logged_in_user(response[1].decode())
+        if opcode == protocol.LOG_IN_DENIED:
+            self.gui_callback.display_result("Log in denied", message_type="error")
+        if opcode == protocol.SIGN_UP_APPROVED:
+            self.gui_callback.display_result("Sign up approved", message_type="result")
+        if opcode == protocol.SIGN_UP_DENIED:
+            self.gui_callback.display_result("Sign up denied- username is already taken", message_type="error")
+
 
     @staticmethod
     def convert_image_string_to_tuple(image_string_list):
@@ -101,6 +110,12 @@ class Client(threading.Thread):
 
     def send_file(self, file_path):
         self.queue_task(protocol.REQUEST_IMAGE, file_path)
+
+    def request_sign_up(self, username, password):
+        self.queue_task(protocol.SIGN_UP_REQUEST, username, password)
+
+    def request_log_in(self, username, password):
+        self.queue_task(protocol.LOG_IN_REQUEST, username, password)
 
     def request_images(self, digit=None):
         if digit is None:
@@ -132,6 +147,20 @@ class Client(threading.Thread):
         if task_code == protocol.REQUEST_IMAGES_BY_DIGIT:
             digit = args[0]
             self.send(protocol.REQUEST_IMAGES_BY_DIGIT, digit)
+        if task_code == protocol.SIGN_UP_REQUEST:
+            username = args[0]
+            password = args[1]
+            if len(username) == 0 or len(password) == 0:
+                self.gui_callback.display_result("Username or password cannot be empty", message_type="error")
+                return False
+            self.send(protocol.SIGN_UP_REQUEST, username, password)
+        if task_code == protocol.LOG_IN_REQUEST:
+            username = args[0]
+            password = args[1]
+            if len(username) == 0 or len(password) == 0:
+                self.gui_callback.display_result("Username or password cannot be empty", message_type="error")
+                return False
+            self.send(protocol.LOG_IN_REQUEST, username, password)
         return True
 
 

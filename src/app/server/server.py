@@ -75,7 +75,7 @@ class ClientHandler(threading.Thread):
         super().__init__()
         self.crypto = ServerCrypto(rsa_key)
         self.soc = soc
-
+        self.user_id = None
         self.connected = True
         self.ai = pickle.load(open('main_model.pkl', 'rb')) # Load the model
         self.db_orm = img_db_orm.ImagesORM()
@@ -133,7 +133,7 @@ class ClientHandler(threading.Thread):
                     elif not is_valid_image(request[2]):
                         to_send = (protocol.ERROR, "1")
                     else:
-                        num, confidence = self.identify_num(request[2])
+                        num, confidence = self.identify_num(request[2], user_id=self.user_id)
                         to_send = (protocol.IMAGE_IDENTIFIED, num, str(confidence))
                 elif opcode == protocol.REQUEST_IMAGES:
                     files = self.db_orm.get_all_images_files()
@@ -142,6 +142,23 @@ class ClientHandler(threading.Thread):
                     digit = request[1].decode()
                     files = self.db_orm.get_image_by_digit_files(digit)
                     to_send = self.build_return_images_msg(files)
+                elif opcode == protocol.SIGN_UP_REQUEST:
+                    username = request[1].decode()
+                    password = request[2].decode()
+                    with db_lock:
+                        id_of_created_user = self.db_orm.register_user(username, password)
+                    if id_of_created_user is None:
+                        to_send = (protocol.SIGN_UP_DENIED,)
+                    else:
+                        to_send = (protocol.SIGN_UP_APPROVED,)
+                elif opcode == protocol.LOG_IN_REQUEST:
+                    username = request[1].decode()
+                    password = request[2].decode()
+                    self.user_id = self.db_orm.authenticate_user(username, password)
+                    if self.user_id is None:
+                        to_send = (protocol.LOG_IN_DENIED,)
+                    else:
+                        to_send = (protocol.LOG_IN_APPROVED, username)
                 self.send(*to_send)
             except socket.timeout:
                 pass
@@ -157,13 +174,21 @@ class ClientHandler(threading.Thread):
         msg_lst = [protocol.RETURN_IMAGES] + msg_lst
         return msg_lst
 
-    def identify_num(self, picture_content):
+    def identify_num(self, picture_content, user_id=None):
+        """
+        Identify the number in the image using the AI model.
+        Save the image to the database.
+        :param picture_content: the image content
+        :param user_id: the user id that sent the image
+        :return:
+        """
         image_array = image_to_2d_array(picture_content)
         prediction = self.ai.forward(image_array)
         class_index = np.argmax(prediction[0])
         confidence = float(prediction[0][class_index])
-        with db_lock:
-            self.db_orm.process_and_store(picture_content, str(class_index), confidence)
+        if user_id is not None:
+            with db_lock:
+                self.db_orm.process_and_store(picture_content, str(class_index), confidence, user_id)
 
         return str(class_index), confidence
 

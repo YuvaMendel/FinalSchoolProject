@@ -13,11 +13,15 @@ class ClientGUI:
         self.root.title("DigitNet Client")
         self.root.geometry("400x300")
         self.client = None
+        self.logged_in_user = None
+
         self.load_icons()
         self.no_internet_img = None
         self.connected_img = None
         self.connection_label = None
         self.status_frame = None
+        self.login_status_label = None
+
         self.load_images()
         self.create_main_screen()
         self.file_label = None
@@ -27,6 +31,7 @@ class ClientGUI:
         self.browse_icon = ImageTk.PhotoImage(Image.open("static/browse.png").resize((20, 20)))
         self.upload_icon = ImageTk.PhotoImage(Image.open("static/upload.png").resize((20, 15)))
         self.exit_icon = ImageTk.PhotoImage(Image.open("static/exit.png").resize((20, 20)))
+        self.login_icon = ImageTk.PhotoImage(Image.open("static/login.png").resize((20, 20)))
 
     def load_images(self):
         no_net = Image.open("static/no_connection.png")
@@ -37,54 +42,112 @@ class ClientGUI:
         self.connected_img = ImageTk.PhotoImage(connected)
 
     def update_connection_status(self):
-        if not hasattr(self, "connection_label") or self.connection_label is None:
-            return
-        if not self.connection_label.winfo_exists():
-            return
-
-        if self.client is None or not self.client.is_connected():
-            self.connection_label.config(image=self.no_internet_img)
-        else:
-            self.connection_label.config(image=self.connected_img)
+        if self.connection_label and self.connection_label.winfo_exists():
+            if self.client is None or not self.client.is_connected():
+                self.connection_label.config(image=self.no_internet_img)
+                self.update_login_status(None)
+            else:
+                self.connection_label.config(image=self.connected_img)
 
     def start_connection_polling(self, interval_ms=2000):
         self.update_connection_status()
         self.root.after(interval_ms, self.start_connection_polling)
+
+    def create_status_frame(self):
+        if self.status_frame:
+            self.status_frame.destroy()
+
+        self.status_frame = tk.Frame(self.root)
+        self.status_frame.place(x=5, y=5)
+
+        self.connection_label = tk.Label(self.status_frame)
+        self.connection_label.pack(side=tk.LEFT, padx=5)
+
+        self.login_status_label = tk.Label(self.status_frame, text="Not logged in", font=("Arial", 10))
+        self.login_status_label.pack(side=tk.LEFT, padx=5)
+
+        self.update_login_status(self.logged_in_user)
+        self.update_connection_status()
+
+    def update_login_status(self, username):
+        self.logged_in_user = username
+        if self.login_status_label and self.login_status_label.winfo_exists():
+            if username:
+                self.login_status_label.config(text=f"Logged in as: {username}")
+            else:
+                self.login_status_label.config(text="Not logged in")
 
     def create_main_screen(self):
         self.file_path = None
         for widget in self.root.winfo_children():
             widget.destroy()
 
-        tk.Label(self.root, text="Main Menu", font=("Arial", 16)).pack(pady=20)
+        self.create_status_frame()  # Moved to top
+
+        # Now the title label is pushed below the status bar
+        tk.Label(self.root, text="Main Menu", font=("Arial", 16)).pack(pady=(40, 20))
 
         ttk.Button(self.root, text="Upload Image", image=self.upload_icon, compound="left",
                    command=self.open_upload_screen, width=20).pack(pady=5)
         ttk.Button(self.root, text="Browse", image=self.browse_icon, compound="left",
                    command=self.open_browse_screen, width=20).pack(pady=5)
+        ttk.Button(self.root, text="Log in", image=self.login_icon, compound="left",
+                   command=self.open_login_screen, width=20).pack(pady=5)
         ttk.Button(self.root, text="Exit", image=self.exit_icon, compound="left",
                    command=self.exit_gui, width=20).pack(pady=5)
 
-        self.status_frame = tk.Frame(self.root)
-        self.status_frame.place(x=5, y=5)
+        self.create_status_frame()
 
-        self.connection_label = tk.Label(self.status_frame)
-        self.connection_label.pack()
+    def open_login_screen(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
 
-        self.update_connection_status()
+        tk.Label(self.root, text="Login / Sign Up", font=("Arial", 16)).pack(pady=(40,20))
+
+        tk.Label(self.root, text="Username:").pack()
+        username_entry = tk.Entry(self.root)
+        username_entry.pack(pady=5)
+
+        tk.Label(self.root, text="Password:").pack()
+        password_entry = tk.Entry(self.root, show="*")
+        password_entry.pack(pady=5)
+
+        def login():
+            username = username_entry.get().strip()
+            password = password_entry.get().strip()
+            if self.client:
+                self.client.request_log_in(username, password)
+            else:
+                messagebox.showerror("Error", "Client not initialized.")
+
+        def signup():
+            username = username_entry.get().strip()
+            password = password_entry.get().strip()
+            if self.client:
+                self.client.request_sign_up(username, password)
+            else:
+                messagebox.showerror("Error", "Client not initialized.")
+
+        tk.Button(self.root, text="Login", command=login).pack(pady=5)
+        tk.Button(self.root, text="Sign Up", command=signup).pack(pady=5)
+        tk.Button(self.root, text="Back", command=self.create_main_screen).pack(pady=5)
+
+        self.create_status_frame()
+
+    def gui_set_logged_in_user(self, username):
+        self.update_login_status(username)
 
     def exit_gui(self):
         self.exit = True
         if self.client is not None:
             self.client.close()
-
         self.root.quit()
 
     def open_upload_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
 
-        tk.Label(self.root, text="Upload Image", font=("Arial", 16)).pack(pady=20)
+        tk.Label(self.root, text="Upload Image", font=("Arial", 16)).pack(pady=(40,20))
 
         self.upload_button = tk.Button(self.root, text="Choose File", command=self.upload_image)
         self.upload_button.pack(pady=10)
@@ -96,6 +159,8 @@ class ClientGUI:
         self.submit_button.pack(pady=10)
 
         tk.Button(self.root, text="Back", command=self.create_main_screen).pack(pady=20)
+
+        self.create_status_frame()
 
     def upload_image(self):
         self.file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
@@ -115,7 +180,7 @@ class ClientGUI:
         for widget in self.root.winfo_children():
             widget.destroy()
 
-        tk.Label(self.root, text="Browse Images", font=("Arial", 16)).pack(pady=10)
+        tk.Label(self.root, text="Browse Images", font=("Arial", 16)).pack(pady=(40,20))
 
         filter_frame = tk.Frame(self.root)
         filter_frame.pack(pady=10)
@@ -132,6 +197,8 @@ class ClientGUI:
         tk.Button(self.root, text="Browse", command=self.browse_images, width=20).pack(pady=10)
         tk.Button(self.root, text="Back", command=self.create_main_screen).pack(pady=10)
 
+        self.create_status_frame()
+
     def browse_images(self):
         if self.client is not None:
             digit = self.filter_var.get()
@@ -143,7 +210,7 @@ class ClientGUI:
             messagebox.showerror("Error", "Client not initialized.")
 
     def display_images(self, images):
-        self.current_images = images  # Store for later use in ZIP
+        self.current_images = images
 
         for widget in self.root.winfo_children():
             widget.destroy()
@@ -207,7 +274,6 @@ class ClientGUI:
                 col = 0
                 row += 1
 
-        # Smooth scroll binding (only while hovering)
         def _on_mousewheel(event):
             try:
                 if canvas.winfo_exists():
@@ -224,7 +290,6 @@ class ClientGUI:
         bind_scroll()
         self.root.bind("<Destroy>", lambda e: unbind_scroll())
 
-        # === Buttons at bottom ===
         btn_frame = tk.Frame(self.root)
         btn_frame.grid(row=1, column=0, pady=10)
 
@@ -232,9 +297,9 @@ class ClientGUI:
             side=tk.LEFT, padx=10)
         tk.Button(btn_frame, text="Download ZIP", command=self.download_zip).pack(side=tk.RIGHT, padx=10)
 
+        self.create_status_frame()
+
     def download_zip(self):
-
-
         if not hasattr(self, "current_images") or not self.current_images:
             messagebox.showinfo("Info", "No images to export.")
             return

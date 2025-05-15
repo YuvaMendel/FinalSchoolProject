@@ -12,8 +12,19 @@ IMAGE_IDENTIFIED = 'RIPR'  # server identified image
 ERROR = 'ERRR'  # server error
 REQUEST_IMAGES = 'RIHP'  # client requests images that have been recognized (from the database)
 REQUEST_IMAGES_BY_DIGIT = 'RIHD'  # client requests images that have been recognized by digit
-RETURN_IMAGES = 'RIHL'  # server returns images from database
 
+RETURN_IMAGES = 'RIHL'  # server returns images from database (starts return process)
+IMAGE_FILE_RETURN = 'RILF'  # returns a image file (the "RETURN_IMAGES" send the amount of "IMAGE_FILE_RETURN" messages)
+
+SIGN_UP_REQUEST = 'CRSU'  # client requests to  sign up
+SIGN_UP_APPROVED = 'CRSA'  # server approved the sign up request
+SIGN_UP_DENIED = 'CRSD'  # server denied the sign up request
+LOG_IN_REQUEST = 'CRSI'  # client requests to sign in
+LOG_IN_APPROVED = 'CRSA'  # server approved the sign in request
+LOG_IN_DENIED = 'CRFD'  # server denied the sign in request
+
+
+# Error Codes
 error_messages = {"1": "Image format not recognized/supported",
                   "2": "File is too large",
                   "3": "Invalid request",

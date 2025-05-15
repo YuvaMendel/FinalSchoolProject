@@ -2,6 +2,7 @@ import sqlite3
 import os
 import uuid
 import hashlib
+import secrets
 from PIL import Image
 import io
 
@@ -29,17 +30,61 @@ class ImagesORM:
 
     def create_tables(self):
         self.open_DB()
+
+        # Create Users table
+        self.cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Users (
+            user_id TEXT PRIMARY KEY,
+            username TEXT UNIQUE,
+            password_hash TEXT,
+            salt TEXT
+        )
+        ''')
+
+        # Create Images table with user_id column
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS Images (
             image_id TEXT PRIMARY KEY,
             digit TEXT,
             path TEXT,
             confidence REAL,
-            hash TEXT UNIQUE
+            hash TEXT UNIQUE,
+            user_id TEXT
         )
         ''')
+
         self.commit()
         self.close_DB()
+
+    def register_user(self, username, password):
+        self.open_DB()
+        salt = secrets.token_hex(16)
+        password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+        user_id = str(uuid.uuid4())
+
+        try:
+            self.cursor.execute('''
+            INSERT INTO Users (user_id, username, password_hash, salt)
+            VALUES (?, ?, ?, ?)
+            ''', (user_id, username, password_hash, salt))
+            self.commit()
+        except sqlite3.IntegrityError:
+            user_id = None  # Username already exists
+        self.close_DB()
+        return user_id
+
+    def authenticate_user(self, username, password):
+        self.open_DB()
+        self.cursor.execute('SELECT user_id, password_hash, salt FROM Users WHERE username = ?', (username,))
+        result = self.cursor.fetchone()
+        self.close_DB()
+
+        if result:
+            user_id, stored_hash, salt = result
+            computed_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+            if computed_hash == stored_hash:
+                return user_id
+        return None
 
     def save_image_file(self, image_bytes, max_size=256):
         img = Image.open(io.BytesIO(image_bytes))
@@ -62,7 +107,7 @@ class ImagesORM:
 
         return image_id, path, hash_val
 
-    def insert_image(self, image_id, digit, path, confidence, hash_val):
+    def insert_image(self, image_id, digit, path, confidence, hash_val, user_id):
         self.open_DB()
 
         # Check for duplicate based on hash
@@ -72,9 +117,9 @@ class ImagesORM:
             return  # Duplicate found, skip insertion
 
         self.cursor.execute('''
-        INSERT INTO Images (image_id, digit, path, confidence, hash)
-        VALUES (?, ?, ?, ?, ?)
-        ''', (image_id, digit, path, confidence, hash_val))
+        INSERT INTO Images (image_id, digit, path, confidence, hash, user_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ''', (image_id, digit, path, confidence, hash_val, user_id))
 
         # Keep only the most recent `image_limit` entries
         self.cursor.execute('''
@@ -120,9 +165,9 @@ class ImagesORM:
             self.commit()
             self.close_DB()
 
-    def process_and_store(self, image_bytes, digit, confidence):
+    def process_and_store(self, image_bytes, digit, confidence, user_id):
         image_id, path, hash_val = self.save_image_file(image_bytes)
-        self.insert_image(image_id, digit, path, confidence, hash_val)
+        self.insert_image(image_id, digit, path, confidence, hash_val, user_id)
         self.delete_old_files()
 
     def get_all_images_files(self):
