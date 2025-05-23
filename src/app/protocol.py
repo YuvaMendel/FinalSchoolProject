@@ -57,14 +57,21 @@ def recv_by_size(sock, return_type="bytes"):
     return data
 
 
-def send_by_size(sock, data):
+def send_by_size(sock, data, max_chunk_size=4096):
     if len(data) == 0:
         return
     if type(data) != bytes:
         data = data.encode()
     len_data = str(len(data)).zfill(SIZE_OF_SIZE).encode()
     data = len_data + data
-    sock.sendall(data)
+    total_sent = 0
+    while total_sent < len(data):
+        end = min(total_sent + max_chunk_size, len(data))
+        chunk = data[total_sent:end]
+        sent = sock.send(chunk)
+        if sent == 0:
+            raise RuntimeError("socket connection broken")
+        total_sent += sent
     __log("Sent", data)
 
 
