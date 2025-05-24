@@ -72,6 +72,11 @@ class Server:
                 
 class ClientHandler(threading.Thread):
     def __init__(self, soc, rsa_key):
+        """
+        Initialize the client handler.
+        :param soc: the socket of the client
+        :param rsa_key: the RSA key for encryption
+        """
         super().__init__()
         self.crypto = ServerCrypto(rsa_key)
         self.soc = soc
