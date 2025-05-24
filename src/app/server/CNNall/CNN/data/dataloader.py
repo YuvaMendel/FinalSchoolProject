@@ -19,6 +19,7 @@ class DataLoader:
         return self
 
     def __next__(self):
+        """Return the next batch of images and labels."""
         if self.current_index >= len(self.images):
             raise StopIteration
         start = self.current_index

@@ -46,6 +46,11 @@ class Server:
         on_press_key('q', lambda _: self.close())
         
     def activate_server(self):
+        """
+        Activate the server to listen for incoming connections.
+        This method will run in a loop, accepting new clients and starting a handler for each client.
+        :return: None
+        """
         self.online = True
         while self.online:
             try:
@@ -60,6 +65,10 @@ class Server:
                 print(f"Socket error: {e}")
 
     def close(self):
+        """
+        Close the server and all its clients.
+        :return: None
+        """
         with self.server_lock:
             self.online = False
 
@@ -71,6 +80,9 @@ class Server:
                 
                 
 class ClientHandler(threading.Thread):
+    """
+    This class handles a single client connection.
+    """
     def __init__(self, soc, rsa_key):
         """
         Initialize the client handler.
@@ -88,6 +100,11 @@ class ClientHandler(threading.Thread):
             self.db_orm.create_tables()
     
     def run(self):
+        """
+        Run the client handler.
+        This method will perform the handshake with the client and then start the business logic.
+        :return: None
+        """
         try:
             self.handshake()
         except Exception as e:
@@ -98,21 +115,31 @@ class ClientHandler(threading.Thread):
         self.business_logic()
 
     def handshake(self):
+        """ Perform the handshake with the client."""
         protocol.send_by_size(self.soc, self.crypto.get_public())
         self.crypto.decrypt_aes_key(protocol.recv_by_size(self.soc), protocol.recv_by_size(self.soc))
         # Get aes key and aes iv (for cbc) and give them to crypto object)
         self.send(protocol.ACK_START)
 
     def send(self, *msg):
+        """ Send a message to the client."""
         msg = protocol.format_message(msg)
         protocol.send_by_size(self.soc, self.crypto.encrypt(msg))
 
     def recv(self):
+        """
+        Receive a message from the client.
+        :return: decoded message
+        """
         rdata = protocol.recv_by_size(self.soc)
         decrypted_data = self.crypto.decrypt(rdata)
         return protocol.unformat_message(decrypted_data)
 
     def business_logic(self):
+        """
+        The main business logic of the server.
+        :return:
+        """
         while self.connected:
             try:
                 try:
@@ -191,6 +218,7 @@ class ClientHandler(threading.Thread):
 
     @staticmethod
     def build_return_images_msg(files):
+        """ Build the return images message."""
         msg_lst = []
         for file in files:
             msg_lst.append(file[0])
@@ -219,6 +247,7 @@ class ClientHandler(threading.Thread):
         return str(class_index), confidence
 
 def is_valid_image(bytes_data):
+    """ Check if the given bytes data is a valid image."""
     try:
         with Image.open(io.BytesIO(bytes_data)) as img:
             img.verify()  # Verifies it is an image, doesn't decode full data
@@ -228,6 +257,7 @@ def is_valid_image(bytes_data):
 
 
 def thicken_digit_pil(pil_img, kernel_size=(2, 2), iterations=1):
+    """ Thicken the digit in a PIL image using dilation."""
     # Convert to grayscale NumPy array
     img_np = np.array(pil_img.convert("L"))
 
@@ -277,20 +307,24 @@ def image_to_2d_array(image_content):
 
 
 class ServerCrypto:
+    """ This class handles the encryption and decryption of messages using RSA and AES."""
     def __init__(self, rsa_key):
         self.rsa_key = rsa_key
         self.aes_key = None
         self.aes_iv = None
         
     def get_public(self):
+        """ Get the public key of the RSA key."""
         return self.rsa_key.publickey().export_key()
         
     def decrypt_aes_key(self, aes_key, aes_iv):
+        """ Decrypt the AES key and IV using the RSA key."""
         decipher_rsa = PKCS1_OAEP.new(self.rsa_key)
         self.aes_key = decipher_rsa.decrypt(aes_key)
         self.aes_iv = aes_iv
+
     def encrypt(self, plaintext):
-        
+        """ Encrypt the plaintext using AES encryption."""
         if not self.aes_key or not self.aes_iv:
             raise ValueError("AES key and IV must be set before encryption.")
 
@@ -301,6 +335,7 @@ class ServerCrypto:
         return ciphertext
 
     def decrypt(self, encrypted_text):
+        """ Decrypt the encrypted text using AES decryption."""
         if not self.aes_key or not self.aes_iv:
             raise ValueError("AES key and IV must be set before decryption.")
 

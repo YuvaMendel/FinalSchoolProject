@@ -15,6 +15,7 @@ import io
 
 class Client(threading.Thread):
     def __init__(self, dest_ip, dest_port=protocol.PORT, gui_callback=None):
+        """ Initializes the client with the destination IP and port."""
         super().__init__()
         self.dest = (dest_ip, dest_port)
         self.sock = socket.socket()
@@ -24,14 +25,17 @@ class Client(threading.Thread):
         self.gui_callback = gui_callback
 
     def connect(self):
+        """ Connects to the server and performs the handshake."""
         self.sock.connect(self.dest)
         self.sock.settimeout(protocol.CLIENT_TIMEOUT)
         self.handshake()
 
     def run(self):
+        """ The main thread function that runs the client."""
         self.activate()
 
     def handshake(self):
+        """ Performs the handshake with the server to establish a secure connection."""
         rsa_public = protocol.recv_by_size(self.sock)
         encrypted_aes_key, aes_iv = self.crypto.encrypted_key_iv(rsa_public)
         protocol.send_by_size(self.sock, encrypted_aes_key)
@@ -42,9 +46,11 @@ class Client(threading.Thread):
             print("Handshake successful")
 
     def queue_task(self, task_code ,*args):
+        """ Queues a task to be processed by the client."""
         self.request_queue.put((task_code, args))
 
     def activate(self):
+        """ This function is used to activate the client and start processing tasks from the request queue."""
         while self.connected:
             task = self.request_queue.get()
             if task is None:
@@ -68,6 +74,7 @@ class Client(threading.Thread):
                     break
 
     def recv_files_process(self, amount_of_files):
+
         """
         This function is used to receive files from the server
         :param amount_of_files: the number of files to receive
@@ -100,6 +107,7 @@ class Client(threading.Thread):
         return images
 
     def business_logic(self, response):
+        """ This function processes the response from the server based on the opcode."""
         opcode = response[0].decode()
         if opcode == protocol.IMAGE_IDENTIFIED:
             self.gui_callback.display_result("The server predicts: " + response[1].decode() + "\nwith confidence: " + response[2].decode())
@@ -141,15 +149,19 @@ class Client(threading.Thread):
         return img_lst
 
     def send_file(self, file_path):
+        """puts a task to the request queue to send a file to the server."""
         self.queue_task(protocol.REQUEST_IMAGE, file_path)
 
     def request_sign_up(self, username, password):
+        """puts a task to the request queue to sign up a new user."""
         self.queue_task(protocol.SIGN_UP_REQUEST, username, password)
 
     def request_log_in(self, username, password):
+        """puts a task to the request queue to log in a user."""
         self.queue_task(protocol.LOG_IN_REQUEST, username, password)
 
     def request_images(self, digit=None):
+        """puts a task to the request queue to request images from the server."""
         if digit is None:
             self.queue_task(protocol.REQUEST_IMAGES)
         else:
@@ -205,20 +217,24 @@ class Client(threading.Thread):
         self.sock.close()
 
     def send(self, *msg):
+        """ Sends a message to the server after formatting and encrypting it."""
         msg = protocol.format_message(msg)
 
         protocol.send_by_size(self.sock, self.crypto.encrypt(msg))
 
     def recv(self):
+        """ Receives a message from the server, decrypts it, and unformats it."""
         return protocol.unformat_message(self.crypto.decrypt(protocol.recv_by_size(self.sock)))
 
 
 class ClientCrypto:
+    """ A class to handle the encryption and decryption of messages using AES and RSA."""
     def __init__(self):
         self.aes_key = os.urandom(32)
         self.aes_iv = os.urandom(16)
 
     def encrypted_key_iv(self, rsa_key):
+        """ Encrypts the AES key and IV using the provided RSA public key."""
         rsa_key = RSA.import_key(rsa_key)
         cipher_rsa = PKCS1_OAEP.new(rsa_key)
         encrypted_aes_key = cipher_rsa.encrypt(self.aes_key)
@@ -226,6 +242,7 @@ class ClientCrypto:
         return encrypted_aes_key, aes_iv
 
     def encrypt(self, plaintext):
+        """ Encrypts the plaintext using AES in CBC mode with padding."""
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
         padded_data = pad(plaintext.encode(), AES.block_size)
         ciphertext = cipher.encrypt(padded_data)
@@ -233,7 +250,7 @@ class ClientCrypto:
         return ciphertext
 
     def decrypt(self, encrypted_text):
-
+        """ Decrypts the encrypted text using AES in CBC mode with unpadding."""
         cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
         decrypted_padded = cipher.decrypt(encrypted_text)
         plaintext = unpad(decrypted_padded, AES.block_size)

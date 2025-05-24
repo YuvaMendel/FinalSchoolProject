@@ -36,6 +36,12 @@ DEBUG_FLAG = True
 
 
 def __recv_amount(sock, size=SIZE_OF_SIZE):
+    """
+    Receive a specific amount of data from a socket.
+    :param sock: a socket to receive data from
+    :param size: size of the data to receive, default is SIZE_OF_SIZE
+    :return: data received from the socket as bytes
+    """
     buffer = b''
     while size:
         new_bufffer = sock.recv(size)
@@ -47,6 +53,12 @@ def __recv_amount(sock, size=SIZE_OF_SIZE):
 
 
 def recv_by_size(sock, return_type="bytes"):
+    """
+    Receive data from a socket by size.
+    :param sock: socket to receive data from
+    :param return_type: type of data to return, either "bytes" or "string"
+    :return: data received from the socket, either as bytes or string
+    """
     data = b''
     data_len = int(__recv_amount(sock, SIZE_OF_SIZE))
     # code handle the case of data_len 0
@@ -59,6 +71,13 @@ def recv_by_size(sock, return_type="bytes"):
 
 
 def send_by_size(sock, data, max_chunk_size=4096):
+    """
+    Send data to a socket by size.
+    :param sock: socket to send data to
+    :param data: data to send, can be a string or bytes
+    :param max_chunk_size: chunk size to send data in, default is 4096 bytes
+    :return:
+    """
     if len(data) == 0:
         return
     if type(data) != bytes:
@@ -77,6 +96,11 @@ def send_by_size(sock, data, max_chunk_size=4096):
 
 
 def format_message(args):
+    """
+    Format a message by encoding each argument in base64 and joining them with SEPERATOR.
+    :param args: arguments to format, can be a list or tuple of strings or bytes
+    :return: string with base64 encoded parts separated by SEPERATOR
+    """
     args = list(args)
     for i in range(len(args)):
         if type(args[i]) == str:
@@ -87,11 +111,23 @@ def format_message(args):
 
 
 def unformat_message(msg):
+    """
+    Unformat a message that was formatted with format_message.
+    :param msg: the message to unformat, should be a string with base64 encoded parts separated by SEPERATOR
+    :return: a list of bytes, each element is the decoded base64 string from the message
+    """
     split_msg = msg.split(SEPERATOR)
     return [(base64.b64decode(s.encode())) for s in split_msg]
 
     
 def __log(prefix, data, max_to_print=100):
+    """
+    Log data to the console if DEBUG_FLAG is set.
+    :param prefix: prefix for the log message
+    :param data: data to log, can be a string or bytes
+    :param max_to_print: maximum number of characters to print from the data
+    :return:
+    """
     if not DEBUG_FLAG:
         return
     data_to_log = data[:max_to_print]
