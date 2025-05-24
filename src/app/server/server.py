@@ -111,7 +111,7 @@ class ClientHandler(threading.Thread):
             print(f"Handshake failed: {e}")
             self.connected = False
             return
-        self.soc.settimeout(0.1)
+        self.soc.settimeout(4)
         self.business_logic()
 
     def handshake(self):
@@ -189,10 +189,11 @@ class ClientHandler(threading.Thread):
                 elif opcode == protocol.LOG_IN_REQUEST:
                     username = request[1].decode()
                     password = request[2].decode()
-                    self.user_id = self.db_orm.authenticate_user(username, password)
-                    if self.user_id is None:
+                    login_uid = self.db_orm.authenticate_user(username, password)
+                    if login_uid is None:
                         to_send = (protocol.LOG_IN_DENIED,)
                     else:
+                        self.user_id = login_uid
                         to_send = (protocol.LOG_IN_APPROVED, username)
                 self.send(*to_send)
             except socket.timeout:

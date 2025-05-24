@@ -28,6 +28,7 @@ def main():
             connection.gui_callback = app
             app.client = connection
             connection.join()
+            app.update_login_status(None)
             finished = app.exit
     threading.Thread(target=start_client, daemon=True).start()
     app.activate()
