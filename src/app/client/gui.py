@@ -222,7 +222,7 @@ class ClientGUI:
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
 
-        tk.Label(container, text="Images", font=("Arial", 16)).grid(row=0, column=0, columnspan=2, pady=10)
+        tk.Label(container, text="Images", font=("Arial", 16)).grid(row=0, column=0, columnspan=2, pady=(40,20))
 
         canvas = tk.Canvas(container)
         scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
