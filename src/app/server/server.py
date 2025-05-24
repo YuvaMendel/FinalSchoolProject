@@ -139,12 +139,12 @@ class ClientHandler(threading.Thread):
                     files = self.db_orm.get_all_images_files()
                     # send the images
                     self.send_files_process(files)
-                    to_send = protocol.RETURN_FILES_END
+                    to_send = (protocol.RETURN_FILES_END,)
                 elif opcode == protocol.REQUEST_IMAGES_BY_DIGIT:
                     digit = request[1].decode()
                     files = self.db_orm.get_image_by_digit_files(digit)
                     self.send_files_process(files)
-                    to_send = protocol.RETURN_FILES_END
+                    to_send = (protocol.RETURN_FILES_END,)
                 elif opcode == protocol.SIGN_UP_REQUEST:
                     username = request[1].decode()
                     password = request[2].decode()

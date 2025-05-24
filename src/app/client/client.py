@@ -25,6 +25,7 @@ class Client(threading.Thread):
 
     def connect(self):
         self.sock.connect(self.dest)
+        self.sock.settimeout(protocol.CLIENT_TIMEOUT)
         self.handshake()
 
     def run(self):
@@ -89,6 +90,8 @@ class Client(threading.Thread):
                 digit = image_list[2].decode()
                 confidence = float(image_list[3].decode())
                 images.append((id, image, digit, confidence))
+            else:
+                raise ValueError(f"Unexpected opcode: {opcode}")
         if not finished_process:
             msg = self.recv()
             opcode = msg[0].decode()

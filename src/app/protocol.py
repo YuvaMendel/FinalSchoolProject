@@ -4,6 +4,7 @@ HOST = "127.0.0.1"  # Server address
 PORT = 6627         # Communication port
 SIZE_OF_SIZE = 7   # Size of the size field in the beginning of the message
 MAX_FILE_SIZE = 3000000  # Maximum file size (1MB)
+CLIENT_TIMEOUT = 2  # Timeout for client operations in seconds
 SEPERATOR = '~'     # Seperator for the fields of the message
 # Message Codes (OPCODES)
 ACK_START = 'GKSC'  # server got key from client and is ready to start communication
