@@ -111,10 +111,17 @@ class ImagesORM:
         self.open_DB()
 
         # Check for duplicate based on hash
-        self.cursor.execute('SELECT 1 FROM Images WHERE hash = ?', (hash_val,))
-        if self.cursor.fetchone():
-            self.close_DB()
-            return  # Duplicate found, skip insertion
+        self.cursor.execute('SELECT image_id, path FROM Images WHERE hash = ?', (hash_val,))
+        result = self.cursor.fetchone()
+
+        if result:
+            existing_image_id, existing_path = result
+            if not os.path.exists(existing_path):
+                # File is missing, remove old database record
+                self.cursor.execute('DELETE FROM Images WHERE image_id = ?', (existing_image_id,))
+            else:
+                self.close_DB()
+                return  # File exists, skip insertion
 
         self.cursor.execute('''
         INSERT INTO Images (image_id, digit, path, confidence, hash, user_id)
