@@ -206,6 +206,7 @@ def get_files_by_rows(rows):
 
 
 class Files:
+
     def __init__(self, rows):
         self.rows = rows
         self.index = 0
